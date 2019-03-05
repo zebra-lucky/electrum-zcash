@@ -13,7 +13,7 @@ cp contrib/zcash/deterministic.spec .
 cp contrib/zcash/pyi_runtimehook.py .
 cp contrib/zcash/pyi_tctl_runtimehook.py .
 
-wine pip install --upgrade pip
+wine pip install --upgrade pip==18.1
 export PYINSTALLER_TAG=dev180610
 wget https://github.com/zebra-lucky/pyinstaller/archive/$PYINSTALLER_TAG.tar.gz
 wine pip install $PYINSTALLER_TAG.tar.gz
