@@ -25,9 +25,9 @@ try:
     from btchip.btchipComm import HIDDongleHIDAPI, DongleWait
     from btchip.btchip import btchip
     from btchip.btchipUtils import compress_public_key,format_transaction, get_regular_input_script, get_p2sh_input_script
-    from btchip.bitcoinTransaction import bitcoinTransaction
     from btchip.btchipFirmwareWizard import checkFirmware, updateFirmware
     from btchip.btchipException import BTChipException
+    from .btchip_zcash import btchip_zcash, zcashTransaction
     btchip.setAlternateCoinVersions = setAlternateCoinVersions
     BTCHIP = True
     BTCHIP_DEBUG = is_verbose
@@ -36,13 +36,18 @@ except ImportError:
 
 MSG_NEEDS_FW_UPDATE_GENERIC = _('Firmware version too old. Please update at') + \
                       ' https://www.ledgerwallet.com'
+MSG_NEEDS_FW_UPDATE_OVERWINTER = (_('Firmware version too old for '
+                                    'Overwinter/Sapling support. '
+                                    'Please update at') +
+                                  ' https://www.ledgerwallet.com')
 MULTI_OUTPUT_SUPPORT = '1.1.4'
 ALTERNATIVE_COIN_VERSION = '1.0.1'
+OVERWINTER_SUPPORT = '1.3.3'
 
 
 class Ledger_Client():
     def __init__(self, hidDevice):
-        self.dongleObject = btchip(hidDevice)
+        self.dongleObject = btchip_zcash(hidDevice)
         self.preflightDone = False
 
     def is_pairable(self):
@@ -136,11 +141,15 @@ class Ledger_Client():
     def supports_multi_output(self):
         return self.multiOutputSupported
 
+    def supports_overwinter(self):
+        return self.overwinterSupported
+
     def perform_hw1_preflight(self):
         try:
             firmwareInfo = self.dongleObject.getFirmwareVersion()
             firmware = firmwareInfo['version']
             self.multiOutputSupported = versiontuple(firmware) >= versiontuple(MULTI_OUTPUT_SUPPORT)
+            self.overwinterSupported = versiontuple(firmware) >= versiontuple(OVERWINTER_SUPPORT)
             self.canAlternateCoinVersions = (versiontuple(firmware) >= versiontuple(ALTERNATIVE_COIN_VERSION)
                                              and firmwareInfo['specialVersion'] >= 0x20)
 
@@ -318,6 +327,9 @@ class Ledger_KeyStore(Hardware_KeyStore):
         pin = ""
         self.get_client() # prompt for the PIN before displaying the dialog if necessary
 
+        if tx.overwintered:
+            if not self.get_client_electrum().supports_overwinter():
+                self.give_error(MSG_NEEDS_FW_UPDATE_OVERWINTER)
         # Fetch inputs of the transaction to sign
         derivations = self.get_tx_derivations(tx)
         for txin in tx.inputs():
@@ -386,8 +398,15 @@ class Ledger_KeyStore(Hardware_KeyStore):
             # Get trusted inputs from the original transactions
             for utxo in inputs:
                 sequence = int_to_hex(utxo[5], 4)
-                if not p2shTransaction:
-                    txtmp = bitcoinTransaction(bfh(utxo[0]))
+                if tx.overwintered:
+                    txtmp = zcashTransaction(bfh(utxo[0]))
+                    tmp = bfh(utxo[3])[::-1]
+                    tmp += bfh(int_to_hex(utxo[1], 4))
+                    tmp += txtmp.outputs[utxo[1]].amount
+                    chipInputs.append({'value' : tmp, 'sequence' : sequence})
+                    redeemScripts.append(bfh(utxo[2]))
+                elif not p2shTransaction:
+                    txtmp = zcashTransaction(bfh(utxo[0]))
                     trustedInput = self.get_client().getTrustedInput(txtmp, utxo[1])
                     trustedInput['sequence'] = sequence
                     chipInputs.append(trustedInput)
@@ -403,18 +422,24 @@ class Ledger_KeyStore(Hardware_KeyStore):
             inputIndex = 0
             rawTx = tx.serialize()
             self.get_client().enableAlternate2fa(False)
-            while inputIndex < len(inputs):
-                self.get_client().startUntrustedTransaction(firstTransaction, inputIndex,
-                                                        chipInputs, redeemScripts[inputIndex])
+            if tx.overwintered:
+                self.get_client().startUntrustedTransaction(True, inputIndex, chipInputs,
+                                                            redeemScripts[inputIndex],
+                                                            version=tx.version,
+                                                            overwintered=tx.overwintered)
                 if changePath:
                     # we don't set meaningful outputAddress, amount and fees
                     # as we only care about the alternateEncoding==True branch
                     outputData = self.get_client().finalizeInput(b'', 0, 0, changePath, bfh(rawTx))
                 else:
                     outputData = self.get_client().finalizeInputFull(txOutput)
+
+                if tx.overwintered:
+                    inputSignature = self.get_client().untrustedHashSign('',
+                                                                         pin, lockTime=tx.locktime,
+                                                                         overwintered=tx.overwintered)
                 outputData['outputData'] = txOutput
-                if firstTransaction:
-                    transactionOutput = outputData['outputData']
+                transactionOutput = outputData['outputData']
                 if outputData['confirmationNeeded']:
                     outputData['address'] = output
                     self.handler.finished()
@@ -423,14 +448,48 @@ class Ledger_KeyStore(Hardware_KeyStore):
                         raise UserWarning()
                     if pin != 'paired':
                         self.handler.show_message(_("Confirmed. Signing Transaction..."))
-                else:
-                    # Sign input with the provided PIN
-                    inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex], pin, lockTime=tx.locktime)
+                while inputIndex < len(inputs):
+                    singleInput = [ chipInputs[inputIndex] ]
+                    self.get_client().startUntrustedTransaction(False, 0, singleInput,
+                                                                redeemScripts[inputIndex],
+                                                                version=tx.version,
+                                                                overwintered=tx.overwintered)
+                    inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex],
+                                                                         pin, lockTime=tx.locktime,
+                                                                         overwintered=tx.overwintered)
                     inputSignature[0] = 0x30 # force for 1.4.9+
                     signatures.append(inputSignature)
                     inputIndex = inputIndex + 1
-                if pin != 'paired':
-                    firstTransaction = False
+            else:
+                while inputIndex < len(inputs):
+                    self.get_client().startUntrustedTransaction(firstTransaction, inputIndex,
+                                                                chipInputs, redeemScripts[inputIndex])
+                    if changePath:
+                        # we don't set meaningful outputAddress, amount and fees
+                        # as we only care about the alternateEncoding==True branch
+                        outputData = self.get_client().finalizeInput(b'', 0, 0, changePath, bfh(rawTx))
+                    else:
+                        outputData = self.get_client().finalizeInputFull(txOutput)
+                    outputData['outputData'] = txOutput
+                    if firstTransaction:
+                        transactionOutput = outputData['outputData']
+                    if outputData['confirmationNeeded']:
+                        outputData['address'] = output
+                        self.handler.finished()
+                        pin = self.handler.get_auth( outputData ) # does the authenticate dialog and returns pin
+                        if not pin:
+                            raise UserWarning()
+                        if pin != 'paired':
+                            self.handler.show_message(_("Confirmed. Signing Transaction..."))
+                    else:
+                        # Sign input with the provided PIN
+                        inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex],
+                                                                             pin, lockTime=tx.locktime)
+                        inputSignature[0] = 0x30 # force for 1.4.9+
+                        signatures.append(inputSignature)
+                        inputIndex = inputIndex + 1
+                    if pin != 'paired':
+                        firstTransaction = False
         except UserWarning:
             self.handler.show_error(_('Cancelled by user'))
             return
