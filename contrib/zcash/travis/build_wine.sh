@@ -20,7 +20,7 @@ wine pip install PyInstaller==3.4
 wine pip install cython=0.29.3
 wine pip install hidapi
 wine pip install pycryptodomex==3.6.0
-wine pip install btchip-python==0.1.26
+wine pip install btchip-python==0.1.28
 wine pip install keepkey==4.0.2
 
 wine pip install rlp==0.6.0
