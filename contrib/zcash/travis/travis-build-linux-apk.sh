@@ -6,23 +6,28 @@ if [[ -z $TRAVIS_TAG ]]; then
   exit 1
 fi
 
-BUILD_REPO_URL=https://github.com/zebra-lucky/electrum-zcash
+BUILD_REPO_URL=https://github.com/zebra-lucky/electrum-zcash.git
 
 cd build
 
 git clone --branch $TRAVIS_TAG $BUILD_REPO_URL electrum-zcash
 
-docker run --rm \
-    -v $(pwd):/opt \
-    -w /opt/electrum-zcash \
-    -t zebralucky/electrum-dash-winebuild:Linux /opt/build_linux.sh
-
-sudo find . -name '*.po' -delete
-sudo find . -name '*.pot' -delete
+pushd electrum-zcash
+./contrib/make_locale
+find . -name '*.po' -delete
+find . -name '*.pot' -delete
+popd
 
 sudo chown -R 1000 electrum-zcash
 
+DOCKER_CMD="rm -rf packages"
+DOCKER_CMD="$DOCKER_CMD && ./contrib/make_packages"
+DOCKER_CMD="$DOCKER_CMD && ./contrib/make_apk"
+if [ $ELECTRUM_MAINNET = false ] ; then
+    DOCKER_CMD="$DOCKER_CMD release-testnet"
+fi
+
 docker run --rm \
     -v $(pwd)/electrum-zcash:/home/buildozer/build \
-    -t zebralucky/electrum-dash-winebuild:Kivy bash -c \
-    'rm -rf packages && ./contrib/make_packages && ./contrib/make_apk'
+    -t zebralucky/electrum-dash-winebuild:Kivy33x bash -c \
+    "$DOCKER_CMD"

@@ -1,3 +1,224 @@
+# Release 3.3.8
+
+ * appimage: URLs could not be opened on some desktop environments (#5425)
+ * A few other minor bugfixes and usability improvements.
+
+
+# Release 3.3.7
+
+ * CoinChooser improvements:
+   - more likely to construct txs without change (when possible)
+   - less likely to construct txs with really small change (e864fa5)
+   - will now only spend negative effective value coins when
+     beneficial for privacy (cb69aa8)
+ * fix long-standing bug that broke wallets with >65k addresses (#5366)
+ * Android: (fix) BIP70 payment requests could not be paid (#5376)
+ * Android: allow copy-pasting partial transactions from/to clipboard
+ * Fix a performance regression for large wallets (c6a54f0)
+ * Qt: fix some high DPI issues related to text fields (37809be)
+ * Trezor:
+   - allow bypassing "too old firmware" error (#5391)
+   - use only the Bridge to scan devices if it is available (#5420)
+ * hw wallets: (known issue) on Win10-1903, some hw devices
+   (that also have U2F functionality) can only be detected with
+   Administrator privileges. (see #5420 and #5437)
+   A workaround is to run as Admin, or for Trezor to install the Bridge.
+ * Several other minor bugfixes and usability improvements.
+
+
+# Release 3.3.6
+
+ * fix synchronizer not to keep resubscribing to addresses of
+   already closed wallets (e415c0d9)
+ * fix removing addresses/keys from imported wallets (#4481)
+ * kivy: fix rare crash when changing exchange rate settings (#5329)
+ * A few other minor bugfixes and usability improvements.
+
+
+# Release 3.3.5
+
+ * The logging system has been overhauled (#5296).
+   Logs can now also optionally be written to disk, disabled by default.
+ * Fix a bug in synchronizer (#5122) where client could get stuck.
+   Also, show the progress of history sync in the GUI. (#5319)
+ * fix Revealer in Windows and MacOS binaries (#5027)
+ * fiat rate providers:
+   - added CoinGecko.com and CoinCap.io
+   - BitcoinAverage now only provides historical exchange rates for
+     paying customers. Changed default provider to CoinGecko.com (#5188)
+ * hardware wallets:
+   - Ledger: Nano X is now recognized (#5140)
+   - KeepKey:
+     - device was not getting detected using Windows binary (#5165)
+     - support firmware 6.0.0+ (#5205)
+   - Trezor: implemented "seedless" mode (#5118)
+ * Coin Control in Qt: implemented freezing individual UTXOs
+   in addition to freezing addresses (#5152)
+ * Kivy:
+   - fix bug with local transactions (#5156)
+   - allow selecting fiat rate providers without historical data (#5162)
+ * Testnet: there is now a warning when the client is started in
+   testnet mode as there were a number of reports of users getting
+   scammed through social engineering (#5295)
+ * CoinChooser: performance of creating transactions has been improved
+   significantly for large wallets. (d56917f4)
+ * Importing/sweeping WIF keys: stricter checks (#4638, #5290)
+ * Electrum protocol: the client's "user agent" has been changed from
+   "3.3.5" to "electrum-zcash/3.3.5". Other libraries connecting to servers
+   can consider not "spoofing" to be Electrum-Zcash. (#5246)
+ * Several other minor bugfixes and usability improvements.
+
+
+# Release 3.3.4
+
+ * AppImage: we now also distribute self-contained binaries for x86_64
+   Linux in the form of an AppImage (#5042). The Python interpreter,
+   PyQt5, libsecp256k1, PyCryptodomex, zbar, hidapi/libusb (including
+   hardware wallet libraries) are all bundled. Note that users of
+   hw wallets still need to set udev rules themselves.
+ * hw wallets: fix a regression during transaction signing that prompts
+   the user too many times for confirmations (commit 2729909)
+ * transactions now set nVersion to 2, to mimic Bitcoin Core
+ * fix Qt bug that made all hw wallets unusable on Windows 8.1 (#4960)
+ * fix bugs in wallet creation wizard that resulted in corrupted
+   wallets being created in rare cases (#5082, #5057)
+ * fix compatibility with Qt 5.12 (#5109)
+
+
+# Release 3.3.3
+
+ * Do not expose users to server error messages (#4968)
+ * Notify users of new releases. Release announcements must be signed,
+   and they are verified using a hardcoded Zcash address.
+ * Hardware wallet fixes (#4991, #4993, #5006)
+ * Display only QR code in QRcode Window
+ * Randomise locktime of transactions
+
+
+# Release 3.3.2
+
+ * Fix Qt history export bug
+ * Improve network timeouts
+ * Prepend server transaction_broadcast error messages with
+   explanatory message. Render error messages as plain text.
+
+
+# Release 3.3.1
+
+ * Qt: Fix invoices tab crash (#4941)
+ * Android: Minor GUI improvements
+
+
+# Release 3.3.0
+
+ * The network layer has been rewritten using asyncio and aiorpcx.
+   In addition to easier maintenance, this makes the client
+   more robust against misbehaving servers.
+ * The minimum python version was increased to 3.6
+ * The blockchain headers and fork handling logic has been generalized.
+   Clients by default now follow chain based on most work, not length.
+ * MacOS: support QR code scanner in binaries.
+ * Android APK:
+   - build using Google NDK instead of Crystax NDK
+   - target API 28
+   - do not use external storage (previously for block headers)
+ * hardware wallets:
+   - Archos Safe-T mini: fix #4726 signing issue
+   - Trezor: refactoring and compat with python-trezor 0.11
+   - Digital BitBox: support firmware v5.0.0
+ * fix bitcoin URI handling when app already running (#4796)
+ * Qt listings rewritten:
+   the History tab now uses QAbstractItemModel, the other tabs use
+   QStandardItemModel. Performance should be better for large wallets.
+ * Several other minor bugfixes and usability improvements.
+
+
+# Release 3.2.3
+
+ * hardware wallet: the Safe-T mini from Archos is now supported.
+ * BIP39 seeds: if a seed extension (aka passphrase) contained
+   multiple consecutive whitespaces or leading/trailing whitespaces
+   then the derived addresses were not following spec. This has been
+   fixed, and affected should move their coins. The wizard will show a
+   warning in this case. (#4566)
+ * Revealer: the PRNG used has been changed (#4649)
+ * fix Linux distributables: 'typing' was not bundled, needed for python 3.4
+ * fix #4491: on Android, if user had set "uZEC" as base unit, app crashed
+ * fix #4497: on Android, paying bip70 invoices from cold start did not work
+ * Several other minor bugfixes and usability improvements.
+
+
+# Release 3.2.2
+
+ * Fix DNS resolution on Windows
+ * Fix websocket bug in daemon
+
+
+# Release 3.2.1
+
+ * fix Windows binaries: due to build process changes, the locale files
+   were not included; the language could not be changed from English
+ * fix Linux distributables: wordlists were not included (#4475)
+
+
+# Release 3.2.0
+
+ * If present, libsecp256k1 is used to speed up elliptic curve
+   operations. The library is bundled in the Windows, MacOS, and
+   Android binaries. On Linux, it needs to be installed separately.
+ * Two-factor authentication is available on Android. Note that this
+   will only provide additional security if one time passwords are
+   generated on a separate device.
+ * Semi-automated crash reporting is implemented for Android.
+ * Transactions that are dropped from the mempool are kept in the
+   wallet as 'local', and can be rebroadcast. Previously these
+   transactions were deleted from the wallet.
+ * The scriptSig part of transaction inputs are no longer
+   parsed, unless actually needed. The wallet will no longer display
+   'from' addresses corresponding to transaction inputs, except for
+   its own inputs.
+ * The partial transaction format has been incompatibly changed. This
+   was needed as for partial transactions the scriptSig has to
+   be parsed, but for signed transactions we did not want to do the
+   parsing.  Users should make sure that all instances of Electrum
+   they use to co-sign or offline sign, are updated together.
+ * Signing of partial transactions created with online imported
+   addresses wallets now supports significantly more
+   setups. Previously only online p2pkh address + offline WIF was
+   supported.  Now the following setups are all supported:
+   - online p2pkh address + offline WIF,
+   - online p2pkh address + offline seed/xprv,
+   - online p2sh-multisig address + offline seeds/xprvs
+     (potentially distributed among several different machines)
+   Note that for the online address + offline HD secret case, you need
+   the offline wallet to recognize the address (i.e. within gap
+   limit).  Having an xpub on the online machine is still the
+   recommended setup, as this allows the online machine to generate
+   new addresses on demand.
+ * Added Revealer plugin. ( https://revealer.cc ) Revealer is a seed
+   phrase back-up solution. It allows you to create a cold, analog,
+   multi-factor backup of your wallet seeds, or of any arbitrary
+   secret. The Revealer utilizes a transparent plastic visual one time
+   pad.
+ * Fractional fee rates: the Qt GUI now displays fee rates with 0.1
+   sat/byte precision, and also allows this same resolution in the
+   Send tab.
+ * Hardware wallets: a "show address" button is now displayed in the
+   Receive tab of the Qt GUI. (#4316)
+ * Trezor One: implemented advanced/matrix recovery (#4329)
+ * Qt/Kivy: added "sat" as optional base unit.
+ * Kivy GUI: significant performance improvements when displaying
+   history and address list of large wallets; and transaction dialog
+   of large transactions.
+ * Windows: use dnspython to resolve dns instead of socket.getaddrinfo
+   (#4422)
+ * Importing minikeys: use uncompressed pubkey instead of compressed
+   (#4384)
+ * SPV proofs: check inner nodes not to be valid transactions (#4436)
+ * Qt GUI: there is now an optional "dark" theme (#4461)
+ * Several other minor bugfixes and usability improvements.
+
+
 # Release 3.1.3
 
  * Qt GUI: seed word auto-complete during restore
@@ -10,6 +231,7 @@
 # Release 3.1.2
 
  * Kivy/android: request PIN on startup
+ * Improve OSX build process
  * Fix various bugs with hardware wallets
  * Other minor bugfixes
 
@@ -29,6 +251,19 @@
 
 # Release 3.1.0
 
+ * Memory-pool based fee estimation. Dynamic fees can target a desired
+   depth in the memory pool. This feature is optional, and ETA-based
+   estimates from Bitcoin Core are still available. Note that miners
+   could exploit this feature, if they conspired and filled the memory
+   pool with expensive transactions that never get mined. However,
+   since the Electrum client already trusts an Electrum server with
+   fee estimates, activating this feature does not introduce any new
+   vulnerability. In addition, the client uses a hard threshold to
+   protect itself from servers sending excessive fee estimates. In
+   practice, ETA-based estimates have resulted in sticky fees, and
+   caused many users to overpay for transactions. Advanced users tend
+   to visit (and trust) websites that display memory-pool data in
+   order to set their fees.
  * Capital gains: For each outgoing transaction, the difference
    between the acquisition and liquidation prices of outgoing coins is
    displayed in the wallet history. By default, historical exchange
@@ -47,6 +282,10 @@
    create several transactions before broadcasting them. Outgoing
    transactions that have been removed from the memory pool are also
    saved in the wallet, and can be broadcast again.
+ * Checkpoints: The initial download of a headers file was replaced
+   with hardcoded checkpoints. The wallet uses one checkpoint per
+   retargeting period. The headers for a retargeting period are
+   downloaded only if transactions need to be verified in this period.
  * The 'privacy' and 'priority' coin selection policies have been
    merged into one. Previously, the 'privacy' policy has been unusable
    because it was was not prioritizing confirmed coins. The new policy
@@ -64,13 +303,19 @@
    is changed. Keys in the previous format can be imported, compatibility
    is maintained. Newly exported keys will be serialized as
    "script_type:original_wif_format_key".
+ * BIP32 master keys for testnet once again have different version bytes than
+   on mainnet. For the mainnet prefixes xpub,xprv, the
+   corresponding testnet prefixes are tpub,tprv.
+   Note that due to this change, testnet wallet files created with previous
+   versions of Electrum must be considered broken, and they need to be
+   recreated from seed words.
  * A new version of the Electrum protocol is required by the client
    (version 1.2). Servers using older versions of the protocol will
    not be displayed in the GUI.
 
-# Release 3.0.6 :
 
- * Integrate changes from Electrum-3.0.6
+# Release 3.0.6 :
+  * Fix transaction parsing bug #3788
 
 # Release 3.0.5 : (Security update)
 
@@ -263,7 +508,7 @@ issue #3374. Users should upgrade to 3.0.5.
 
 # Release 2.7.7
   * Fix utf8 encoding bug with old wallet seeds (issue #1967)
-  * Fix delete request from menu (isue #1968)
+  * Fix delete request from menu (issue #1968)
 
 # Release 2.7.6
  * Fixes a critical bug with imported private keys (issue #1966). Keys
@@ -622,7 +867,7 @@ issue #3374. Users should upgrade to 3.0.5.
  * New 'Receive' tab in the GUI:
    - create and manage payment requests, with QR Codes
    - the former 'Receive' tab was renamed to 'Addresses'
-   - the former Point of Sale plugin is replaced by a resizeable
+   - the former Point of Sale plugin is replaced by a resizable
      window that pops up if you click on the QR code
 
  * The 'Send' tab in the Qt GUI supports transactions with multiple
@@ -645,7 +890,7 @@ issue #3374. Users should upgrade to 3.0.5.
 
  * The client accepts servers with a CA-signed SSL certificate.
 
- * ECIES encrypt/decrypt methods, availabe in the GUI and using
+ * ECIES encrypt/decrypt methods, available in the GUI and using
    the command line:
       encrypt <pubkey> <message>
       decrypt <pubkey> <message>
@@ -718,7 +963,7 @@ bugfixes: connection problems, transactions staying unverified
 
 # Release 1.8.1
 
-* Notification option when receiving new tranactions
+* Notification option when receiving new transactions
 * Confirm dialogue before sending large amounts
 * Alternative datafile location for non-windows systems
 * Fix offline wallet creation

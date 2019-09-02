@@ -1,18 +1,18 @@
 include LICENCE RELEASE-NOTES AUTHORS
 include README.rst
-include electrum-zcash.conf.sample
 include electrum-zcash.desktop
 include *.py
 include electrum-zcash
 include contrib/requirements/requirements.txt
 include contrib/requirements/requirements-hw.txt
-recursive-include lib *.py
-recursive-include gui *.py
-recursive-include plugins *.py
 recursive-include packages *.py
 recursive-include packages cacert.pem
-include icons.qrc
-recursive-include icons *
-recursive-include scripts *
-recursive-include debian *
+graft debian
 
+graft electrum_zcash
+prune electrum_zcash/tests
+
+global-exclude __pycache__
+global-exclude *.py[co~]
+global-exclude *.py.orig
+global-exclude *.py.rej

@@ -18,7 +18,7 @@
 
   ;Name and file
   Name "${PRODUCT_NAME}"
-  OutFile "dist/electrum-zcash-${PRODUCT_VERSION}-setup-${BUILD_ARCH}.exe"
+  OutFile "dist/${PRODUCT_NAME}-${PRODUCT_VERSION}-setup-${BUILD_ARCH}.exe"
 
   ;Default installation folder
   InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
@@ -48,7 +48,7 @@
   SetCompressorDictSize 64
   
   ;Sets the text that is shown (by default it is 'Nullsoft Install System vX.XX') in the bottom of the install window. Setting this to an empty string ("") uses the default; to set the string to blank, use " " (a space).
-  BrandingText "${PRODUCT_NAME} Installer v${PRODUCT_VERSION}" 
+  BrandingText "${PRODUCT_NAME} Installer v${PRODUCT_VERSION}"
   
   ;Sets what the titlebars of the installer will display. By default, it is 'Name Setup', where Name is specified with the Name command. You can, however, override it with 'MyApp Installer' or whatever. If you specify an empty string (""), the default will be used (you can however specify " " to achieve a blank string)
   Caption "${PRODUCT_NAME}"
@@ -60,13 +60,13 @@
   VIAddVersionKey ProductName "${PRODUCT_NAME} Installer"
   VIAddVersionKey Comments "The installer for ${PRODUCT_NAME}"
   VIAddVersionKey CompanyName "${PRODUCT_NAME}"
-  VIAddVersionKey LegalCopyright "2013-2016 ${PRODUCT_PUBLISHER}"
+  VIAddVersionKey LegalCopyright "2013-2018 ${PRODUCT_PUBLISHER}"
   VIAddVersionKey FileDescription "${PRODUCT_NAME} Installer"
   VIAddVersionKey FileVersion ${PRODUCT_VERSION}
   VIAddVersionKey ProductVersion ${PRODUCT_VERSION}
   VIAddVersionKey InternalName "${PRODUCT_NAME} Installer"
   VIAddVersionKey LegalTrademarks "${PRODUCT_NAME} is a trademark of ${PRODUCT_PUBLISHER}" 
-  VIAddVersionKey OriginalFilename "${PRODUCT_NAME}.exe"
+  VIAddVersionKey OriginalFilename "${PRODUCT_NAME}-${PRODUCT_VERSION}-setup-${BUILD_ARCH}.exe"
 
 ;--------------------------------
 ;Interface Settings
@@ -74,12 +74,13 @@
   !define MUI_ABORTWARNING
   !define MUI_ABORTWARNING_TEXT "Are you sure you wish to abort the installation of ${PRODUCT_NAME}?"
   
-  !define MUI_ICON "icons\electrum-zcash.ico"
+  !define MUI_ICON "electrum_zcash\gui\icons\electrum-zcash.ico"
   
 ;--------------------------------
 ;Pages
 
   !insertmacro MUI_PAGE_DIRECTORY
+  !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_INSTFILES
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
@@ -113,7 +114,7 @@ Function .onInit
     ${EndIf}
 FunctionEnd
 
-Section
+Section "${PRODUCT_NAME}" SectionDE
   SetOutPath $INSTDIR
 
   ;Uninstall previous version files
@@ -123,7 +124,7 @@ Section
 
   ;Files to pack into the installer
   File /r "dist\electrum-zcash\*.*"
-  File "icons\electrum-zcash.ico"
+  File "electrum_zcash\gui\icons\electrum-zcash.ico"
 
   ;Store installation folder
   WriteRegStr HKCU "Software\${PRODUCT_NAME}" "" $INSTDIR
@@ -164,8 +165,22 @@ Section
   WriteRegDWORD HKCU "${PRODUCT_UNINST_KEY}" "EstimatedSize" "$0"
 SectionEnd
 
+Section "Tor Proxy" SectionTor
+  GetTempFileName $0
+  File /oname=$0 "dist\tor-proxy-setup.exe"
+  ExecWait "$0"
+  Delete "$0"
+SectionEnd
+
 ;--------------------------------
 ;Descriptions
+LangString DESC_DE ${LANG_ENGLISH} "Electrum-Zcash Wallet"
+LangString DESC_TOR ${LANG_ENGLISH} "The Tor Project Socks Proxy"
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+!insertmacro MUI_DESCRIPTION_TEXT ${SectionDE} $(DESC_DE)
+!insertmacro MUI_DESCRIPTION_TEXT ${SectionTor} $(DESC_TOR)
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------
 ;Uninstaller Section

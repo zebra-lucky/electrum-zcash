@@ -4,6 +4,11 @@ source ./contrib/zcash/travis/electrum_zcash_version_env.sh;
 echo wine build version is $ELECTRUM_ZCASH_VERSION
 
 mv /opt/zbarw $WINEPREFIX/drive_c/
+
+mv /opt/libsecp256k1/libsecp256k1-0.dll \
+   /opt/libsecp256k1/libsecp256k1.dll
+mv /opt/libsecp256k1 $WINEPREFIX/drive_c/
+
 cd $WINEPREFIX/drive_c/electrum-zcash
 
 rm -rf build
@@ -13,21 +18,10 @@ cp contrib/zcash/deterministic.spec .
 cp contrib/zcash/pyi_runtimehook.py .
 cp contrib/zcash/pyi_tctl_runtimehook.py .
 
-wine pip install -r contrib/zcash/requirements.txt
-wine pip install --upgrade pip==18.1
-wine pip install PyInstaller==3.4
-
-wine pip install cython=0.29.3
-wine pip install hidapi
-wine pip install pycryptodomex==3.6.0
-wine pip install btchip-python==0.1.28
-wine pip install keepkey==4.0.2
-
-wine pip install rlp==0.6.0
-wine pip install trezor==0.9.1
-
-mkdir $WINEPREFIX/drive_c/Qt
-ln -s $PYHOME/Lib/site-packages/PyQt5/ $WINEPREFIX/drive_c/Qt/5.5.1
+wine python -m pip install --no-warn-script-location -r contrib/deterministic-build/requirements.txt
+wine python -m pip install --no-warn-script-location -r contrib/deterministic-build/requirements-hw.txt
+wine python -m pip install --no-warn-script-location -r contrib/deterministic-build/requirements-binaries.txt
+wine python -m pip install --no-warn-script-location PyInstaller==3.4 --no-use-pep517
 
 wine pyinstaller -y \
     --name electrum-zcash-$ELECTRUM_ZCASH_VERSION.exe \

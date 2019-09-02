@@ -2,12 +2,28 @@
 
 set -e
 
-pushd lib
-VERSION=$(python -c "import version; ev = version.ELECTRUM_VERSION; print ev if len(ev.split('.')) > 3 else ev + '.0';")
-popd
-echo $VERSION
-echo "version_apk = '$VERSION'" > contrib/versions.py
-pushd ./gui/kivy/
+CONTRIB="$(dirname "$(readlink -e "$0")")"
+ROOT_FOLDER="$CONTRIB"/..
+PACKAGES="$ROOT_FOLDER"/packages/
+LOCALE="$ROOT_FOLDER"/electrum_zcash/locale/
+
+if [ ! -d "$LOCALE" ]; then
+  echo "Run make_locale first!"
+  exit 1
+fi
+
+if [ ! -d "$PACKAGES" ]; then
+  echo "Run make_packages first!"
+  exit 1
+fi
+
+pushd ./electrum_zcash/gui/kivy/
 make theming
-make release
+if [[ -n $1 ]]; then
+    echo make $1
+    make $1
+else
+    echo make release
+    make release
+fi
 popd

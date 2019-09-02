@@ -6,7 +6,7 @@ if [[ -z $TRAVIS_TAG ]]; then
   exit 1
 fi
 
-BUILD_REPO_URL=https://github.com/zebra-lucky/electrum-zcash
+BUILD_REPO_URL=https://github.com/zebra-lucky/electrum-zcash.git
 
 cd build
 
@@ -17,17 +17,23 @@ cd electrum-zcash
 export PY36BINDIR=/Library/Frameworks/Python.framework/Versions/3.6/bin/
 export PATH=$PATH:$PY36BINDIR
 source ./contrib/zcash/travis/electrum_zcash_version_env.sh;
-echo wine build version is $ELECTRUM_ZCASH_VERSION
+echo osx build version is $ELECTRUM_ZCASH_VERSION
 
-sudo pip3 install --upgrade pip
-sudo pip3 install -r contrib/deterministic-build/requirements.txt
-sudo pip3 install \
-    pycryptodomex==3.6.0 \
-    btchip-python==0.1.28 \
-    keepkey==4.0.2 \
-    trezor==0.9.1
 
-pyrcc5 icons.qrc -o gui/qt/icons_rc.py
+git submodule init
+git submodule update
+
+echo "Building CalinsQRReader..."
+d=contrib/CalinsQRReader
+pushd $d
+rm -fr build
+xcodebuild || fail "Could not build CalinsQRReader"
+popd
+
+sudo pip3 install --no-warn-script-location -r contrib/deterministic-build/requirements.txt
+sudo pip3 install --no-warn-script-location -r contrib/deterministic-build/requirements-hw.txt
+sudo pip3 install --no-warn-script-location -r contrib/deterministic-build/requirements-binaries.txt
+sudo pip3 install --no-warn-script-location PyInstaller==3.4 --no-use-pep517
 
 export PATH="/usr/local/opt/gettext/bin:$PATH"
 ./contrib/make_locale
@@ -45,4 +51,4 @@ pyinstaller \
 
 sudo hdiutil create -fs HFS+ -volname "Electrum-Zcash" \
     -srcfolder dist/Electrum-Zcash.app \
-    dist/electrum-zcash-$ELECTRUM_ZCASH_VERSION-macosx.dmg
+    dist/Electrum-Zcash-$ELECTRUM_ZCASH_VERSION-macosx.dmg

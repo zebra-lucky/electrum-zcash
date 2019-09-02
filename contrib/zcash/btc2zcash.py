@@ -1,30 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Search and replaces BTC addresses and private keys in WIF to Zcash variant"""
+"""Search and replaces BTC addresses and private keys in WIF to ZEC variant"""
 
 import click
 import imp
 import re
 
-imp.load_module('lib', *imp.find_module('../../lib'))
+imp.load_module('electrum_zcash', *imp.find_module('../../electrum_zcash'))
 
-from lib.bitcoin import (b58_address_to_hash160, hash160_to_b58_address,
-                         base_decode, serialize_privkey, DecodeBase58Check,
-                         SCRIPT_TYPES)
-from lib.util import inv_dict, to_bytes
-from lib.constants import net
+from electrum_zcash import constants
+from electrum_zcash.bitcoin import (b58_address_to_hash160, hash160_to_b58_address,
+                         serialize_privkey, DecodeBase58Check, WIF_SCRIPT_TYPES)
+from electrum_zcash.util import inv_dict
 
 
 ADDR_PATTERN = re.compile(
     '([123456789ABCDEFGHJKLMNPQRSTUVWXYZ'
-    'abcdefghijkmnopqrstuvwxyz]{20,180})')
-
-
-def b58_address_to_hash160_btc(addr):
-    addr = to_bytes(addr, 'ascii')
-    _bytes = base_decode(addr, 25, base=58)
-    return _bytes[0], _bytes[1:21]
-
+    'abcdefghijkmnopqrstuvwxyz]{20,80})')
 
 def deserialize_btc_priv(val):
     try:
@@ -38,7 +30,7 @@ def deserialize_btc_priv(val):
     if len(vch) not in [33, 34]:
         return None, None, None
 
-    txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - 0x80]
+    txin_type = inv_dict(WIF_SCRIPT_TYPES)[vch[0] - 0x80]
     compressed = len(vch) == 34
 
     return txin_type, vch[1:33], compressed
@@ -54,11 +46,25 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               help='Output file')
 @click.option('-p', '--inplace', is_flag=True,
               help='Replace data inplace')
+@click.option('-t', '--testnet', is_flag=True,
+              help='Use testnet network constants')
 def main(**kwargs):
     input_file = kwargs.pop('input_file')
     output_file = kwargs.pop('output_file', None)
     inplace = kwargs.pop('inplace', False)
     dry_run = kwargs.pop('dry_run', False)
+    testnet = kwargs.pop('testnet', False)
+
+    if testnet:
+        constants.set_testnet()
+        BTC_ADDRTYPE_P2PKH = 111
+        BTC_ADDRTYPE_P2SH = 196
+    else:
+        BTC_ADDRTYPE_P2PKH = 0
+        BTC_ADDRTYPE_P2SH = 5
+
+    net = constants.net
+
     if inplace:
         output_file = input_file
 
@@ -78,14 +84,14 @@ def main(**kwargs):
             val = m.group()
 
             try:
-                addrtype, h = b58_address_to_hash160_btc(val)
+                addrtype, h = b58_address_to_hash160(val)
             except:
                 h = None
 
-            if h and addrtype == 0:
+            if h and addrtype == BTC_ADDRTYPE_P2PKH:
                 new_val = hash160_to_b58_address(h, net.ADDRTYPE_P2PKH)
                 total_sub +=1
-            elif h and addrtype == 5:
+            elif h and addrtype == BTC_ADDRTYPE_P2SH:
                 new_val = hash160_to_b58_address(h, net.ADDRTYPE_P2SH)
                 total_sub +=1
             else:

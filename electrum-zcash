@@ -25,14 +25,28 @@
 # SOFTWARE.
 import os
 import sys
+import warnings
+
+
+MIN_PYTHON_VERSION = "3.6.1"  # FIXME duplicated from setup.py
+_min_python_version_tuple = tuple(map(int, (MIN_PYTHON_VERSION.split("."))))
+
+
+if sys.version_info[:3] < _min_python_version_tuple:
+    sys.exit("Error: Electrum-Zcash requires Python version >= %s..." % MIN_PYTHON_VERSION)
+
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 is_bundle = getattr(sys, 'frozen', False)
 is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "electrum-zcash.desktop"))
 is_android = 'ANDROID_DATA' in os.environ
 
+if is_local:  # running from source
+    # developers should probably see all deprecation warnings.
+    warnings.simplefilter('default', DeprecationWarning)
+
 # move this back to gui/kivy/__init.py once plugins are moved
-os.environ['KIVY_DATA_DIR'] = os.path.abspath(os.path.dirname(__file__)) + '/gui/kivy/data/'
+os.environ['KIVY_DATA_DIR'] = os.path.abspath(os.path.dirname(__file__)) + '/electrum_zcash/gui/kivy/data/'
 
 if is_local or is_android:
     sys.path.insert(0, os.path.join(script_dir, 'packages'))
@@ -44,13 +58,14 @@ def check_imports():
         import dns
         import pyaes
         import ecdsa
-        import requests
+        import certifi
         import qrcode
         import pbkdf2
         import google.protobuf
         import jsonrpclib
+        import aiorpcx
     except ImportError as e:
-        sys.exit("Error: %s. Try 'sudo pip install <module-name>'"%str(e))
+        sys.exit(f"Error: {str(e)}. Try 'sudo python3 -m pip install <module-name>'")
     # the following imports are for pyinstaller
     from google.protobuf import descriptor
     from google.protobuf import message
@@ -58,33 +73,27 @@ def check_imports():
     from google.protobuf import descriptor_pb2
     from jsonrpclib import SimpleJSONRPCServer
     # make sure that certificates are here
-    assert os.path.exists(requests.utils.DEFAULT_CA_BUNDLE_PATH)
+    assert os.path.exists(certifi.where())
 
 
 if not is_android:
     check_imports()
 
-# load local module as electrum
-if is_local or is_android:
-    import imp
-    imp.load_module('electrum_zcash', *imp.find_module('lib'))
-    imp.load_module('electrum_zcash_gui', *imp.find_module('gui'))
-    imp.load_module('electrum_zcash_plugins', *imp.find_module('plugins'))
 
-
-
-from electrum_zcash import bitcoin, util
+from electrum_zcash.logging import get_logger, configure_logging
+from electrum_zcash import util
 from electrum_zcash import constants
-from electrum_zcash import SimpleConfig, Network
-from electrum_zcash.wallet import Wallet, Imported_Wallet
+from electrum_zcash import SimpleConfig
+from electrum_zcash.wallet import Wallet
 from electrum_zcash.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
 from electrum_zcash.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
-from electrum_zcash.util import set_verbosity, InvalidPassword
+from electrum_zcash.util import InvalidPassword
 from electrum_zcash.commands import get_parser, known_commands, Commands, config_variables
 from electrum_zcash import daemon
 from electrum_zcash import keystore
-from electrum_zcash.mnemonic import Mnemonic
-import electrum_zcash_plugins
+
+_logger = get_logger(__name__)
+
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -97,80 +106,6 @@ def prompt_password(prompt, confirm=True):
     if not password:
         password = None
     return password
-
-
-
-def run_non_RPC(config):
-    cmdname = config.get('cmd')
-
-    storage = WalletStorage(config.get_wallet_path())
-    if storage.file_exists():
-        sys.exit("Error: Remove the existing wallet first!")
-
-    def password_dialog():
-        return prompt_password("Password (hit return if you do not wish to encrypt your wallet):")
-
-    if cmdname == 'restore':
-        text = config.get('text').strip()
-        passphrase = config.get('passphrase', '')
-        password = password_dialog() if keystore.is_private(text) else None
-        if keystore.is_address_list(text):
-            wallet = Imported_Wallet(storage)
-            for x in text.split():
-                wallet.import_address(x)
-        elif keystore.is_private_key_list(text):
-            k = keystore.Imported_KeyStore({})
-            storage.put('keystore', k.dump())
-            storage.put('use_encryption', bool(password))
-            wallet = Imported_Wallet(storage)
-            for x in text.split():
-                wallet.import_private_key(x, password)
-            storage.write()
-        else:
-            if keystore.is_seed(text):
-                k = keystore.from_seed(text, passphrase, False)
-            elif keystore.is_master_key(text):
-                k = keystore.from_master_key(text)
-            else:
-                sys.exit("Error: Seed or key not recognized")
-            if password:
-                k.update_password(None, password)
-            storage.put('keystore', k.dump())
-            storage.put('wallet_type', 'standard')
-            storage.put('use_encryption', bool(password))
-            storage.write()
-            wallet = Wallet(storage)
-        if not config.get('offline'):
-            network = Network(config)
-            network.start()
-            wallet.start_threads(network)
-            print_msg("Recovering wallet...")
-            wallet.synchronize()
-            wallet.wait_until_synchronized()
-            wallet.stop_threads()
-            # note: we don't wait for SPV
-            msg = "Recovery successful" if wallet.is_found() else "Found no history for this wallet"
-        else:
-            msg = "This wallet was restored offline. It may contain more addresses than displayed."
-        print_msg(msg)
-
-    elif cmdname == 'create':
-        password = password_dialog()
-        passphrase = config.get('passphrase', '')
-        seed_type = 'standard'
-        seed = Mnemonic('en').make_seed(seed_type)
-        k = keystore.from_seed(seed, passphrase, False)
-        storage.put('keystore', k.dump())
-        storage.put('wallet_type', 'standard')
-        wallet = Wallet(storage)
-        wallet.update_password(None, password, True)
-        wallet.synchronize()
-        print_msg("Your wallet generation seed is:\n\"%s\"" % seed)
-        print_msg("Please keep it in a safe place; if you lose it, you will not be able to restore your wallet.")
-
-    wallet.storage.write()
-    print_msg("Wallet saved in '%s'" % wallet.storage.path)
-    sys.exit(0)
 
 
 def init_daemon(config_options):
@@ -241,28 +176,28 @@ def init_cmdline(config_options, server):
     else:
         password = None
 
-    config_options['password'] = password
+    config_options['password'] = config_options.get('password') or password
 
     if cmd.name == 'password':
         new_password = prompt_password('New password:')
         config_options['new_password'] = new_password
 
-    return cmd, password
-
 
 def get_connected_hw_devices(plugins):
-    support = plugins.get_hardware_support()
-    if not support:
-        print_msg('No hardware wallet support found on your system.')
-        sys.exit(1)
+    supported_plugins = plugins.get_hardware_support()
     # scan devices
     devices = []
     devmgr = plugins.device_manager
-    for name, description, plugin in support:
+    for splugin in supported_plugins:
+        name, plugin = splugin.name, splugin.plugin
+        if not plugin:
+            e = splugin.exception
+            _logger.error(f"{name}: error during plugin init: {repr(e)}")
+            continue
         try:
             u = devmgr.unpaired_device_infos(None, plugin)
-        except:
-            devmgr.print_error("error", name)
+        except Exception as e:
+            _logger.error(f'error getting device infos for {name}: {repr(e)}')
             continue
         devices += list(map(lambda x: (name, x), u))
     return devices
@@ -305,7 +240,7 @@ def run_offline_command(config, config_options, plugins):
     # check password
     if cmd.requires_password and wallet.has_password():
         try:
-            seed = wallet.check_password(password)
+            wallet.check_password(password)
         except InvalidPassword:
             print_msg("Error: This password does not decode this wallet.")
             sys.exit(1)
@@ -328,9 +263,10 @@ def run_offline_command(config, config_options, plugins):
         wallet.storage.write()
     return result
 
+
 def init_plugins(config, gui_name):
-    from electrum_zcash.plugins import Plugins
-    return Plugins(config, is_local or is_android, gui_name)
+    from electrum_zcash.plugin import Plugins
+    return Plugins(config, gui_name)
 
 
 if __name__ == '__main__':
@@ -343,6 +279,17 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'help':
         sys.argv.remove('help')
         sys.argv.append('-h')
+
+    # old '-v' syntax
+    # Due to this workaround that keeps old -v working,
+    # more advanced usages of -v need to use '-v='.
+    # e.g. -v=debug,network=warning,interface=error
+    try:
+        i = sys.argv.index('-v')
+    except ValueError:
+        pass
+    else:
+        sys.argv[i] = '-v*'
 
     # read arguments from stdin pipe and prompt
     for i, arg in enumerate(sys.argv):
@@ -364,7 +311,7 @@ if __name__ == '__main__':
     # config is an object passed to the various constructors (wallet, interface, gui)
     if is_android:
         config_options = {
-            'verbose': True,
+            'verbosity': '',
             'cmd': 'gui',
             'gui': 'kivy',
         }
@@ -384,8 +331,8 @@ if __name__ == '__main__':
     if config_options.get('portable'):
         config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electrum_data')
 
-    # kivy sometimes freezes when we write to sys.stderr
-    set_verbosity(config_options.get('verbose') and config_options.get('gui')!='kivy')
+    if not config_options.get('verbosity'):
+        warnings.simplefilter('ignore', DeprecationWarning)
 
     # check uri
     uri = config_options.get('url')
@@ -397,6 +344,7 @@ if __name__ == '__main__':
 
     # todo: defer this to gui
     config = SimpleConfig(config_options)
+
     cmdname = config.get('cmd')
 
     if config.get('testnet'):
@@ -404,17 +352,12 @@ if __name__ == '__main__':
     elif config.get('regtest'):
         constants.set_regtest()
 
-    # run non-RPC commands separately
-    if cmdname in ['create', 'restore']:
-        run_non_RPC(config)
-        sys.exit(0)
-
     if cmdname == 'gui':
+        configure_logging(config)
         fd, server = daemon.get_fd_or_server(config)
         if fd is not None:
             plugins = init_plugins(config, config.get('gui', 'qt'))
-            d = daemon.Daemon(config, fd, True)
-            d.start()
+            d = daemon.Daemon(config, fd)
             d.init_gui(config, plugins)
             sys.exit(0)
         else:
@@ -426,6 +369,7 @@ if __name__ == '__main__':
             init_daemon(config_options)
 
         if subcommand in [None, 'start']:
+            configure_logging(config)
             fd, server = daemon.get_fd_or_server(config)
             if fd is not None:
                 if subcommand == 'start':
@@ -433,12 +377,21 @@ if __name__ == '__main__':
                     if pid:
                         print_stderr("starting daemon (PID %d)" % pid)
                         sys.exit(0)
+                    # redirect standard file descriptors
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                    si = open(os.devnull, 'r')
+                    so = open(os.devnull, 'w')
+                    se = open(os.devnull, 'w')
+                    os.dup2(si.fileno(), sys.stdin.fileno())
+                    os.dup2(so.fileno(), sys.stdout.fileno())
+                    os.dup2(se.fileno(), sys.stderr.fileno())
+                # run daemon
                 init_plugins(config, 'cmdline')
-                d = daemon.Daemon(config, fd, False)
-                d.start()
+                d = daemon.Daemon(config, fd)
                 if config.get('websocket_server'):
                     from electrum_zcash import websockets
-                    websockets.WebSocketServer(config, d.network).start()
+                    websockets.WebSocketServer(config, d.network)
                 if config.get('requests_dir'):
                     path = os.path.join(config.get('requests_dir'), 'index.html')
                     if not os.path.exists(path):

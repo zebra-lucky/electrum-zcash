@@ -12,17 +12,19 @@ brew update
 brew tap zebra-lucky/qt5
 brew install zebra-lucky/qt5/qt
 brew install gettext
+brew install libusb
+cp /usr/local/Cellar/libusb/1.0.22/lib/libusb-1.0.dylib .
 
-curl -O https://www.python.org/ftp/python/3.6.5/python-3.6.5-macosx10.6.pkg
-curl -O https://bootstrap.pypa.io/get-pip.py
-sudo installer -pkg python-3.6.5-macosx10.6.pkg -target /
-sudo python3 get-pip.py
+PYTHON_VERSION=3.6.8
+PYFTP=https://www.python.org/ftp/python/$PYTHON_VERSION
+PYPKG_NAME=python-$PYTHON_VERSION-macosx10.6.pkg
+PY_SHA256=3c5fd87a231eca3ee138b0cdc2be6517a7ca428304d41901a86b51c6a22b910c
+echo "$PY_SHA256  $PYPKG_NAME" > $PYPKG_NAME.sha256
+curl -O $PYFTP/$PYPKG_NAME
+shasum -a256 -s -c $PYPKG_NAME.sha256
+sudo installer -pkg $PYPKG_NAME -target /
+rm $PYPKG_NAME $PYPKG_NAME.sha256
 
-mkdir libusb
-curl https://homebrew.bintray.com/bottles/libusb-1.0.22.el_capitan.bottle.tar.gz | tar xz --directory libusb
-cp libusb/libusb/1.0.22/lib/libusb-1.0.dylib .
-
-sudo pip3 install SIP==4.19.8
-sudo pip3 install PyQt5==5.7.1
-sudo pip3 install Cython==0.28.1
-sudo pip3 install PyInstaller==3.3.1
+curl -O -L https://github.com/zebra-lucky/secp256k1/releases/download/0.1/libsecp256k1-0.1-osx.tgz
+tar -xzf libsecp256k1-0.1-osx.tgz
+cp libsecp256k1/libsecp256k1.0.dylib .
