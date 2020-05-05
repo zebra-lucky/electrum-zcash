@@ -28,3 +28,5 @@ gui/kivy/theming/light-0.png
 gui/kivy/theming/light.atlas
 Electrum_Zcash.egg-info/
 .pytest_cache
+
+.idea

@@ -41,7 +41,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
     ]
 
 setup(
-    name="Electrum-Zcash",
+    name="Electrum-Zcash-Iohk-Fork",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
     extras_require={
@@ -69,7 +69,7 @@ setup(
         'electrum_zcash_plugins': 'plugins',
     },
     package_data={
-        'electrum_zcash': [
+        'electrum_zcash_iohk_fork': [
             'servers.json',
             'servers_testnet.json',
             'servers_regtest.json',
