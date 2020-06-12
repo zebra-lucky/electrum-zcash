@@ -6,6 +6,7 @@ from electrum_dash.util import bfh, bh2u, versiontuple, UserCancelled, UserFacin
 from electrum_dash.bitcoin import TYPE_ADDRESS, TYPE_SCRIPT
 from electrum_dash.bip32 import BIP32Node, convert_bip32_path_to_list_of_uint32 as parse_path
 from electrum_dash import constants
+from electrum_dash.dash_tx import to_varbytes, serialize_extra_payload
 from electrum_dash.i18n import _
 from electrum_dash.plugin import Device
 from electrum_dash.transaction import deserialize, Transaction
@@ -477,4 +478,9 @@ class TrezorPlugin(HW_PluginBase):
             TxOutputBinType(amount=vout['value'], script_pubkey=bfh(vout['scriptPubKey']))
             for vout in d['outputs']
         ]
+        if t.version > 2:
+            tx_type = d['tx_type']
+            if tx_type:
+                t.extra_data = to_varbytes(serialize_extra_payload(tx))
+                t.version |= tx_type << 16
         return t

@@ -36,6 +36,8 @@ version.filename = %(source.dir)s/electrum_dash/version.py
 
 # (list) Application requirements
 requirements =
+    six,
+    setuptools,
     python3,
     android,
     openssl,
@@ -91,6 +93,8 @@ android.sdk_path = /opt/android-sdk
 
 # (str) ANT directory (if empty, it will be automatically downloaded.)
 #android.ant_path =
+
+android.skip_update = True
 
 # (str) Android entry point, default is ok for Kivy-based app
 #android.entrypoint = org.renpy.android.PythonActivity

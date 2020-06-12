@@ -1,32 +1,33 @@
-Source: electrum-zcash
+Source: electrum-dash
 Section: utils
 Priority: optional
-Maintainer: Maksym Yuzhakov <zebra.lucky@gmail.com>
+Maintainer: Andriy Khavryuchenko <akhavr@khavr.com>
 Build-Depends:
  debhelper (>= 9),
  dh-python,
  python3-all (>= 3.5.36~),
  python3-setuptools,
  python3-pyaes (>= 1.6.1),
- python3-ecdsa (>= 0.10),
+ python3-ecdsa (>= 0.14),
  python3-pbkdf2 (>= 1.3),
  python3-requests (>= 2.2.1),
  python3-qrcode (>= 5.3),
  python3-protobuf (>= 3.0.0),
  python3-dnspython (>= 1.11.1),
  python3-jsonrpclib-pelix (>= 0.3.1),
- python3-pyblake2 (>=0.9.3),
  python3-aiorpcx (<< 0.19),
  python3-aiohttp (>= 3.3.0),
  python3-aiohttp-socks,
  python3-certifi,
+ python3-x11-hash (>= 1.4),
  python3-bls (>= 0.1.8),
+ python3-pygments (>= 2.1),
  python3-pyqt5,
 Standards-Version: 4.1.3
-Homepage: https://github.com/zebra-lucky/electrum-zcash
+Homepage: http://electrum.dash.org/
 X-Python3-Version: >= 3.6
 
-Package: python3-electrum-zcash
+Package: python3-electrum-dash
 Architecture: all
 Section: python
 Depends:
@@ -39,42 +40,47 @@ Depends:
  keepkey (>= 6.1.0),
  python3-keepkey (>= 6.1.0),
  python3-btchip (>= 0.1.28),
+ hideez (>= 0.2.1),
+ python3-hideez (>= 0.2.1),
  python3-aiohttp (>= 3.3.0),
  python3-aiohttp-socks,
- python3-pyblake2 (>=0.9.3),
  python3-aiorpcx (<< 0.19),
  python3-bls (>= 0.1.8),
+ python3-pygments (>= 2.1),
  python3-certifi,
  python3-dnspython (>= 1.11.1),
- python3-ecdsa (>= 0.10),
+ python3-ecdsa (>= 0.14),
  python3-jsonrpclib-pelix (>= 0.3.1),
  python3-protobuf (>= 3.0.0),
  python3-pyaes (>= 1.6.1),
  python3-qrcode (>= 5.3),
+ python3-x11-hash (>= 1.4),
  python3:any (>= 3.5.36~),
-Description: Easy to use Zcash client - Python module
- This package provides a lightweight Zcash client which protects
- you from losing your Zcash coins in a backup mistake or computer
- failure. Also, Electrum-Zcash does not require waiting time because it does
- not download the Zcash blockchain.
+Description: Easy to use Dash client - Python module
+ This package provides a lightweight Dash client which protects
+ you from losing your Dash coins in a backup mistake or computer
+ failure. Also, Dash Electrum does not require waiting time because it does
+ not download the Dash blockchain.
  .
- This package provides the "electrum_zcash" Python 3 module which can be used
- to access a Zcash wallet from Python programs.
+ This package provides the "electrum_dash" Python 3 module which can be used
+ to access a Dash wallet from Python programs.
 
-Package: electrum-zcash
+Package: electrum-dash
 Architecture: all
 Depends:
  ${misc:Depends},
  python3,
- python3-electrum-zcash (= ${binary:Version}),
+ python3-electrum-dash (= ${binary:Version}),
+Replaces: dash-electrum (<= ${binary:Version})
+Breaks: dash-electrum (<= ${binary:Version})
 Recommends: python3-pyqt5
-Description: Easy to use Zcash client
- This package provides a lightweight Zcash client which protects
- you from losing your Zcash coins in a backup mistake or computer
- failure. Also, Electrum-Zcash does not require waiting time because it does
- not download the Zcash blockchain.
+Description: Easy to use Dash client
+ This package provides a lightweight Dash client which protects
+ you from losing your Dash coins in a backup mistake or computer
+ failure. Also, Dash Electrum does not require waiting time because it does
+ not download the Dash blockchain.
  .
- Features of Electrum-Zcash:
+ Features of Dash Electrum:
  .
    * Instant on: Your client does not download the blockchain. It uses a
      network of specialized servers that index the blockchain.
@@ -89,7 +95,42 @@ Description: Easy to use Zcash client
      will synchronize automatically.
    * Cold Storage: Sign transactions from a computer that is always
      offline. Broadcast them using a machine that does not have your keys.
-   * Reachable: You can export your private keys into other Zcash
+   * Reachable: You can export your private keys into other Dash
      clients.
-   * Established: Electrum-Zcash is open source and was first released in
+   * Established: Dash Electrum is open source and was first released in
+     November 2011.
+
+Package: dash-electrum
+Architecture: all
+Depends:
+ ${misc:Depends},
+ python3,
+ python3-electrum-dash (= ${binary:Version}),
+Recommends: python3-pyqt5
+Replaces: electrum-dash (<= ${binary:Version})
+Breaks: electrum-dash (<= ${binary:Version})
+Description: Easy to use Dash client
+ This package provides a lightweight Dash client which protects
+ you from losing your Dash coins in a backup mistake or computer
+ failure. Also, Dash Electrum does not require waiting time because it does
+ not download the Dash blockchain.
+ .
+ Features of Dash Electrum:
+ .
+   * Instant on: Your client does not download the blockchain. It uses a
+     network of specialized servers that index the blockchain.
+   * Forgiving: Your wallet can be recovered from a secret seed.
+   * Safe: Your seed and private keys are encrypted on your hard drive.
+     They are never sent to the servers.
+   * Low trust: Information received from the servers is verified using
+     SPV. Servers are authenticated using SSL.
+   * No downtimes: Your client is not tied to a particular server; it
+     will switch instantly if your server is down.
+   * Ubiquitous: You can use the same wallet on different computers, they
+     will synchronize automatically.
+   * Cold Storage: Sign transactions from a computer that is always
+     offline. Broadcast them using a machine that does not have your keys.
+   * Reachable: You can export your private keys into other Dash
+     clients.
+   * Established: Dash Electrum is open source and was first released in
      November 2011.

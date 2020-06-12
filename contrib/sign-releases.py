@@ -14,7 +14,7 @@ NOTE on apk signing: To create a keystore and sign the apk you need to install
 To create a keystore run the following command:
 
     mkdir ~/.jks && keytool -genkey -v -keystore ~/.jks/keystore \
-        -alias electrum.z.cash -keyalg RSA -keysize 2048 \
+        -alias electrum.dash.org -keyalg RSA -keysize 2048 \
         -validity 10000
 
 Then it shows a warning about the proprietary format and a command to migrate:
@@ -27,10 +27,10 @@ Manual signing:
     jarsigner -verbose \
         -tsa http://sha256timestamp.ws.symantec.com/sha256/timestamp \
         -sigalg SHA1withRSA -digestalg SHA1 \
-        -sigfile zcash-electrum \
+        -sigfile dash-electrum \
         -keystore ~/.jks/keystore \
-        Electrum_Zcash-3.0.6.1-release-unsigned.apk \
-        electrum.z.cash
+        Electrum_DASH-3.0.6.1-release-unsigned.apk \
+        electrum.dash.org
 
 Zipalign from Android SDK build tools is also required (set path to bin in
 settings file or with key -z). To install:
@@ -48,8 +48,8 @@ settings file or with key -z). To install:
 Manual zip aligning:
 
     android-sdk-linux/build-tools/27.0.3/zipalign -v 4 \
-        Electrum_Zcash-3.0.6.1-release-unsigned.apk \
-        Electrum-Zcash-3.0.6.1-release.apk
+        Electrum_DASH-3.0.6.1-release-unsigned.apk \
+        Dash-Electrum-3.0.6.1-release.apk
 
 
 
@@ -136,16 +136,17 @@ SHA_FNAME = 'SHA256SUMS.txt'
 PPA_SERIES = {
     'xenial': '16.04.1',
     'bionic': '18.04.1',
-    'disco': '19.04.1',
+    'eoan': '19.10.1',
+    'focal': '20.04.1',
 }
 PEP440_PUBVER_PATTERN = re.compile('^((\d+)!)?'
                                    '((\d+)(\.\d+)*)'
                                    '([a-zA-Z]+\d+)?'
                                    '((\.[a-zA-Z]+\d+)*)$')
 REL_NOTES_PATTERN = re.compile('^#.+?(^[^#].+?)^#.+?', re.M | re.S)
-SDIST_NAME_PATTERN = re.compile('^Electrum-Zcash-(.*).tar.gz$')
-SDIST_DIR_TEMPLATE = 'Electrum-Zcash-{version}'
-PPA_SOURCE_NAME = 'electrum-zcash'
+SDIST_NAME_PATTERN = re.compile('^Dash-Electrum-(.*).tar.gz$')
+SDIST_DIR_TEMPLATE = 'Dash-Electrum-{version}'
+PPA_SOURCE_NAME = 'electrum-dash'
 PPA_ORIG_NAME_TEMPLATE = '%s_{version}.orig.tar.gz' % PPA_SOURCE_NAME
 CHANGELOG_TEMPLATE = """%s ({ppa_version}) {series}; urgency=medium
 {changes} -- {uid}  {time}""" % PPA_SOURCE_NAME
@@ -156,7 +157,7 @@ LP_ARCHIVES_TEMPLATE = '%s/~{user}/+archive/ubuntu/{ppa}' % LP_API_URL
 
 # sing_apk related definitions
 JKS_KEYSTORE = os.path.join(HOME_DIR, '.jks/keystore')
-JKS_ALIAS = 'electrum.z.cash'
+JKS_ALIAS = 'electrum.dash.org'
 JKS_STOREPASS = 'JKS_STOREPASS'
 JKS_KEYPASS = 'JKS_KEYPASS'
 KEYTOOL_ARGS = ['keytool', '-list', '-storepass:env', JKS_STOREPASS]
@@ -164,12 +165,12 @@ JARSIGNER_ARGS = [
     'jarsigner', '-verbose',
     '-tsa', 'http://sha256timestamp.ws.symantec.com/sha256/timestamp',
     '-sigalg', 'SHA1withRSA', '-digestalg', 'SHA1',
-    '-sigfile', 'zcash-electrum',
+    '-sigfile', 'dash-electrum',
     '-storepass:env', JKS_STOREPASS,
     '-keypass:env', JKS_KEYPASS,
 ]
-UNSIGNED_APK_PATTERN = re.compile('^Electrum_Zcash(_Testnet)?-(.*)-release-unsigned.apk$')
-SIGNED_APK_TEMPLATE = 'Electrum-Zcash{testnet}-{version}-release.apk'
+UNSIGNED_APK_PATTERN = re.compile('^Electrum_DASH(_Testnet)?-(.*)-release-unsigned.apk$')
+SIGNED_APK_TEMPLATE = 'Dash-Electrum{testnet}-{version}-release.apk'
 
 
 os.environ['QUILT_PATCHES'] = 'debian/patches'

@@ -1,5 +1,5 @@
 pyaes>=0.1a1
-ecdsa>=0.13
+ecdsa>=0.14
 qrcode
 protobuf
 dnspython
@@ -9,4 +9,6 @@ aiohttp>=3.3.0
 aiohttp_socks
 certifi
 pycryptodomex
-pyblake2>=0.9.3
+x11_hash
+python-bls>=0.1.8
+Pygments>=2.1

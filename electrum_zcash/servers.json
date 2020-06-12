@@ -2,13 +2,16 @@
     "electrum.dash.siampm.com": {
         "pruning": "-",
         "s": "50002",
-        "t": "50001",
         "version": "1.4"
     },
     "drk.p2pay.com": {
         "pruning": "-",
         "s": "50002",
-        "t": "50001",
         "version": "1.4"
-     }
+     },
+    "hyhwaxmckqakwjde.onion": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.4"
+    }
 }

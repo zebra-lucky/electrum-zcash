@@ -50,6 +50,7 @@ from .bitcoin import COIN
 from . import constants
 from . import blockchain
 from . import bitcoin
+from .constants import CHUNK_SIZE
 from .blockchain import Blockchain, HEADER_SIZE
 from .dash_net import DashNet
 from .interface import (Interface, serialize_server, deserialize_server,
@@ -839,7 +840,7 @@ class Network(Logger):
         b = blockchain.get_best_chain()
         filename = b.path()
         len_checkpoints = len(constants.net.CHECKPOINTS)
-        length = HEADER_SIZE * len_checkpoints * 2016
+        length = HEADER_SIZE * len_checkpoints * CHUNK_SIZE
         if not os.path.exists(filename) or os.path.getsize(filename) < length:
             with open(filename, 'wb') as f:
                 for i in range(len_checkpoints):
@@ -1188,17 +1189,14 @@ class Network(Logger):
         if not height or height <= base_height:
             return
 
-        max_blocks = 2016  # block headers chunk size
         activation_height = constants.net.DIP3_ACTIVATION_HEIGHT
         if base_height <= 1:
             if base_height == 0:  # on protx diff first allowed height is 1
                 base_height = 1
             if height > activation_height:
-                height = activation_height // max_blocks + 1
-                height = height * max_blocks - 1
-        elif height - base_height > max_blocks:
-            height = (base_height + max_blocks) // max_blocks + 1
-            height = height * max_blocks - 1
+                height = activation_height + 1
+        elif height - base_height > CHUNK_SIZE:
+            height = mn_list.calc_max_height(base_height, height)
 
         try:
             params = (base_height, height)
@@ -1324,6 +1322,7 @@ class Network(Logger):
                 # will NOT raise, and the group will keep the other tasks running
                 async with main_taskgroup as group:
                     await group.spawn(self._maintain_sessions())
+                    await group.spawn(self._gather_protx_info())
                     [await group.spawn(job) for job in self._jobs]
             except Exception as e:
                 self.logger.exception('')
@@ -1417,6 +1416,28 @@ class Network(Logger):
                 group = self.main_taskgroup
                 if not group or group._closed:
                     raise
+            await asyncio.sleep(0.1)
+
+    async def _gather_protx_info(self):
+        mn_list = self.mn_list
+        while mn_list.protx_loading:  # start after protx diffs loaded
+            await asyncio.sleep(1)
+        loop = self.asyncio_loop
+        get_hashes = await loop.run_in_executor(None, mn_list.process_info)
+        last_process_time = time.time()
+        while True:
+            if not get_hashes:
+                await asyncio.sleep(60)
+            for h in get_hashes:
+                try:
+                    await self.request_protx_info(h)
+                except Exception as e:
+                    self.logger.info(f'_gather_protx_info error {str(e)}')
+                if time.time() - last_process_time > 60:
+                    break
+                await asyncio.sleep(0.1)
+            get_hashes = await loop.run_in_executor(None, mn_list.process_info)
+            last_process_time = time.time()
             await asyncio.sleep(0.1)
 
     @classmethod

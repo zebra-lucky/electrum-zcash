@@ -1,7 +1,7 @@
-Index: electrum-zcash/electrum-zcash
+Index: electrum-dash-post-3.2.2/electrum-dash
 ===================================================================
---- electrum-zcash.orig/electrum-zcash
-+++ electrum-zcash/electrum-zcash
+--- electrum-dash-post-3.2.2.orig/electrum-dash
++++ electrum-dash-post-3.2.2/electrum-dash
 @@ -28,6 +28,8 @@ import sys
  import warnings
  

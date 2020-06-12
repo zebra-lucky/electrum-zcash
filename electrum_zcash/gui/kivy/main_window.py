@@ -9,6 +9,8 @@ import threading
 import asyncio
 
 from electrum_dash.bitcoin import TYPE_ADDRESS
+from electrum_dash.dash_ps import (PSPossibleDoubleSpendError,
+                                   PSSpendToPSAddressesError)
 from electrum_dash.storage import WalletStorage
 from electrum_dash.wallet import Wallet, InternalAddressCorruption
 from electrum_dash.paymentrequest import InvoiceStore
@@ -17,7 +19,8 @@ from electrum_dash.plugin import run_hook
 from electrum_dash.util import format_satoshis, format_satoshis_plain, format_fee_satoshis
 from electrum_dash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 from electrum_dash import blockchain
-from electrum_dash.network import Network, TxBroadcastError, BestEffortRequestFailed
+from electrum_dash.network import (Network, TxBroadcastError,
+                                   BestEffortRequestFailed, deserialize_proxy)
 from .i18n import _
 
 from kivy.app import App
@@ -42,6 +45,8 @@ from .uix.dialogs.installwizard import InstallWizard
 from .uix.dialogs import InfoBubble, crash_reporter
 from .uix.dialogs import OutputList, OutputItem
 from .uix.dialogs import TopLabel, RefLabel
+from .uix.dialogs.warn_dialog import WarnDialog
+from .uix.dialogs.question import Question
 
 #from kivy.core.window import Window
 #Window.softinput_mode = 'below_target'
@@ -277,6 +282,7 @@ class ElectrumWindow(App):
     '''
 
     def __init__(self, **kwargs):
+        self.is_android = ('ANDROID_DATA' in os.environ)
         # initialize variables
         self._clipboard = Clipboard
         self.info_bubble = None
@@ -431,6 +437,35 @@ class ElectrumWindow(App):
         popup.export = self.export_private_keys
         popup.open()
 
+    def run_app(self, app_name):
+        from jnius import autoclass
+        PythonActivity = autoclass('org.kivy.android.PythonActivity')
+        Intent = autoclass('android.content.Intent')
+        pm = autoclass('android.content.pm.PackageManager')
+        activity = PythonActivity.mActivity
+        pm_ = activity.getPackageManager()
+        array_pkg = pm_.getInstalledApplications(pm.GET_META_DATA).toArray()
+        selected_pkg = []
+        for i in array_pkg:
+           if "/data/app/" not in getattr(i, "publicSourceDir"):
+                continue
+           selected_pkg.append(i)
+        app_to_launch = app_name
+        found = False
+        for i in selected_pkg:
+            if app_to_launch == getattr(i, "packageName"):
+                found = True
+                try:
+                    package_name = getattr(i, "packageName")
+                    app_intent = pm_.getLaunchIntentForPackage(package_name)
+                    app_intent.setAction(Intent.ACTION_VIEW)
+                    app_intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    activity.startActivity(app_intent)
+                except Exception as e:
+                    return f'Error on lauhcing {app_name}: {str(e)}'
+        if not found:
+            return f'App {app_name} not found'
+
     def qr_dialog(self, title, data, show_text=False, text_for_clipboard=None):
         from .uix.dialogs.qr_dialog import QRDialog
         def on_qr_failure():
@@ -522,8 +557,9 @@ class ElectrumWindow(App):
             activity.bind(on_new_intent=self.on_new_intent)
         # connect callbacks
         if self.network:
-            interests = ['wallet_updated', 'network_updated', 'blockchain_updated',
-                         'status', 'new_transaction', 'verified']
+            interests = ['wallet_updated', 'network_updated',
+                         'blockchain_updated', 'status', 'new_transaction',
+                         'verified', 'verified-islock']
             self.network.register_callback(self.on_network_event, interests)
             self.network.register_callback(self.on_fee, ['fee'])
             self.network.register_callback(self.on_fee_histogram, ['fee_histogram'])
@@ -543,26 +579,76 @@ class ElectrumWindow(App):
         from kivy.uix.image import Image
         from kivy.uix.label import Label
         from kivy.uix.popup import Popup
-        from kivy.uix.gridlayout import GridLayout
+        from kivy.uix.boxlayout import BoxLayout
 
-        docs_uri = self.network.tor_docs_uri
-        def on_docs_press(a):
-            import webbrowser
-            webbrowser.open(docs_uri)
-
-        warn_box = GridLayout(rows=4, padding=20, spacing=20)
+        warn_box = BoxLayout(orientation='vertical', padding='10dp',
+                             spacing='10dp')
         popup = Popup(title='Warning', title_align='center',
                       content=warn_box, auto_dismiss=False)
+
         img_error = 'atlas://electrum_dash/gui/kivy/theming/light/error'
-        warn_box.add_widget(Image(source=img_error, size_hint_y=0.1))
-        warn_box.add_widget(Label(text=self.network.tor_warn_msg,
-                            text_size=(Window.size[0]-40-32, None)))
-        docs_btn = Button(text=self.network.tor_docs_title, size_hint_y=0.1)
+        warn_img = Image(source=img_error, size_hint_y=0.15)
+        warn_box.add_widget(warn_img)
+        warn_msg_label = Label(text=self.network.tor_warn_msg,
+                               text_size=(Window.size[0]-40-32, None))
+        warn_box.add_widget(warn_msg_label)
+
+        docs_btn = Button(text=self.network.tor_docs_title, size_hint_y=0.17)
+
+        if self.is_android:
+            open_orbot_msg = _('You can open Orbot app if it is installed and'
+                               ' try to detect Tor again after Orbot is run.')
+            open_orbot_label = Label(text=open_orbot_msg,
+                                     text_size=(Window.size[0]-40-32, None))
+            warn_box.add_widget(open_orbot_label)
+
+            open_orbot_btn = Button(text=_('Open Orbot App'), size_hint_y=0.17)
+            warn_box.add_widget(open_orbot_btn)
+
+            def on_open_orbot_btn(a):
+                err = self.run_app('org.torproject.android')
+                if err:
+                    self.show_error(err)
+            open_orbot_btn.bind(on_press=on_open_orbot_btn)
+
+            detect_tor_btn = Button(text=_('Detect Tor Again'),
+                                    size_hint_y=0.17)
+            warn_box.add_widget(detect_tor_btn)
+
+            def on_detect_tor_btn(a):
+                network = self.network
+                proxy = self.electrum_config.get('proxy')
+                network.tor_detected = network.detect_tor_proxy(proxy)
+                if network.tor_detected:
+                    net_params = network.get_parameters()
+                    proxy = deserialize_proxy(network.tor_detected)
+                    net_params = net_params._replace(proxy=proxy)
+                    coro = network.set_parameters(net_params)
+                    network.run_from_another_thread(coro)
+                    network.tor_on = True
+
+                    warn_box.remove_widget(open_orbot_label)
+                    warn_box.remove_widget(open_orbot_btn)
+                    warn_box.remove_widget(detect_tor_btn)
+                    warn_box.remove_widget(docs_btn)
+                    img_ok = ('atlas://electrum_dash/gui/kivy/theming/'
+                              'light/confirmed')
+                    warn_img.source = img_ok
+                    warn_msg_label.text = _('Tor is detected')
+            detect_tor_btn.bind(on_press=on_detect_tor_btn)
+
         warn_box.add_widget(docs_btn)
-        dismiss_btn = Button(text=_('Close'), size_hint_y=0.1)
+
+        def on_docs_press(a):
+            docs_uri = self.network.tor_docs_uri
+            import webbrowser
+            webbrowser.open(docs_uri)
+        docs_btn.bind(on_press=on_docs_press)
+
+        dismiss_btn = Button(text=_('Close'), size_hint_y=0.17)
         warn_box.add_widget(dismiss_btn)
         dismiss_btn.bind(on_press=popup.dismiss)
-        docs_btn.bind(on_press=on_docs_press)
+
         popup.open()
 
     def get_wallet_path(self):
@@ -626,12 +712,14 @@ class ElectrumWindow(App):
 
     def on_stop(self):
         Logger.info('on_stop')
+        self.history_screen.stop_get_data_thread()
         if self.wallet:
             self.electrum_config.save_last_wallet(self.wallet)
         self.stop_wallet()
 
     def stop_wallet(self):
         if self.wallet:
+            self.wallet.psman.unregister_callback(self.on_ps_callback)
             self.daemon.stop_wallet(self.wallet.storage.path)
             self.wallet = None
 
@@ -664,6 +752,19 @@ class ElectrumWindow(App):
             #self.gui.main_gui.toggle_settings(self)
             return True
 
+        if key == 27 and self.is_exit:
+            psman = self.wallet.psman
+            if psman.state in psman.mixing_running_states:
+                def on_want_exit(b):
+                    if b:
+                        self.stop()
+                from .uix.dialogs.question import Question
+                d = Question(psman.WAIT_MIXING_STOP_MSG, on_want_exit)
+                d.open()
+                return True
+            else:
+                return False
+
     def settings_dialog(self):
         from .uix.dialogs.settings import SettingsDialog
         if self._settings_dialog is None:
@@ -678,11 +779,20 @@ class ElectrumWindow(App):
         self._dash_net_dialog.update()
         self._dash_net_dialog.open()
 
+    def privatesend_dialog(self):
+        if self.wallet.psman.unsupported:
+            from .uix.dialogs.privatesend import PSDialogUnsupportedPS as psdlg
+        else:
+            from .uix.dialogs.privatesend import PSDialog as psdlg
+        psdlg(self).open()
+
     def popup_dialog(self, name):
         if name == 'settings':
             self.settings_dialog()
         elif name == 'dash_net':
             self.dash_net_dialog()
+        elif name == 'privatesend':
+            self.privatesend_dialog()
         elif name == 'wallets':
             from .uix.dialogs.wallets import WalletDialog
             d = WalletDialog()
@@ -736,6 +846,7 @@ class ElectrumWindow(App):
             self.icon = 'electrum_dash/gui/icons/electrum-dash-testnet.png'
         else:
             self.icon = 'electrum_dash/gui/icons/electrum-dash.png'
+        self.root.ids.ps_button.icon = self.ps_icon()
         self.tabs = self.root.ids['tabs']
 
     def update_interfaces(self, dt):
@@ -767,15 +878,125 @@ class ElectrumWindow(App):
         elif event == 'status':
             self._trigger_update_status()
         elif event == 'new_transaction':
-            self._trigger_update_wallet()
+            wallet, tx = args
+            if wallet.psman.need_notify(tx.txid()):
+                self._trigger_update_wallet()
         elif event == 'verified':
             self._trigger_update_wallet()
+        elif event == 'verified-islock':
+            self._trigger_update_wallet()
+
+    def on_ps_callback(self, event, *args):
+        Clock.schedule_once(lambda dt: self.on_ps_event(event, *args))
+
+    def on_ps_event(self, event, *args):
+        psman = self.wallet.psman
+        if event == 'ps-data-changes':
+            wallet = args[0]
+            if wallet == self.wallet:
+                self._trigger_update_wallet()
+        if event == 'ps-reserved-changes':
+            wallet = args[0]
+            if wallet == self.wallet:
+                self._trigger_update_wallet()
+        elif event == 'ps-state-changes':
+            wallet, msg, msg_type = args
+            if wallet == self.wallet:
+                is_mixing = (psman.state in psman.mixing_running_states)
+                self.update_ps_btn(is_mixing)
+                if self.receive_screen:
+                    self.receive_screen.block_on_mixing(is_mixing)
+                if msg:
+                    if msg_type and msg_type.startswith('inf'):
+                        self.show_info(msg)
+                    else:
+                        WarnDialog(msg, title=_('PrivateSend')).open()
+        elif event == 'ps-not-enough-sm-denoms':
+            wallet, denoms_by_vals = args
+            if wallet == self.wallet:
+                q = psman.create_sm_denoms_data(confirm_txt=True)
+
+                def create_small_denoms():
+                    self.create_small_denoms(denoms_by_vals)
+
+                d = Question(q, create_small_denoms)
+                d.open()
+
+    def create_small_denoms(self, denoms_by_vals):
+        w = self.wallet
+        psman = w.psman
+        coins = psman.get_biggest_denoms_by_min_round()
+        if not coins:
+            msg = psman.create_sm_denoms_data(no_denoms_txt=True)
+            self.show_error(msg)
+        self.create_new_denoms(coins[0:1])
+
+    def create_new_denoms(self, coins):
+        def on_q_answered(confirmed):
+            if confirmed:
+                self.protected(_('Enter your PIN code to sign'
+                                 ' new denoms transactions'),
+                               self._create_new_denoms, (coins,))
+
+        w = self.wallet
+        psman = w.psman
+        info = psman.new_denoms_from_coins_info(coins)
+        q = _('Do you want to create transactions?\n\n{}').format(info)
+        d = Question(q, on_q_answered)
+        d.open()
+
+    def _create_new_denoms(self, coins, password):
+        w = self.wallet
+        psman = w.psman
+        wfl, err = psman.create_new_denoms_wfl_from_gui(coins, password)
+        if err:
+            self.show_error(err)
+        else:
+            self.show_info(f'Created New Denoms workflow with'
+                           f' txids: {", ".join(wfl.tx_order)}')
+
+    def create_new_collateral(self, coins):
+        def on_q_answered(confirmed):
+            if confirmed:
+                self.protected(_('Enter your PIN code to sign'
+                                 ' new collateral transactions'),
+                               self._create_new_collateral, (coins,))
+
+        w = self.wallet
+        psman = w.psman
+        info = psman.new_collateral_from_coins_info(coins)
+        q = _('Do you want to create transactions?\n\n{}').format(info)
+        d = Question(q, on_q_answered)
+        d.open()
+
+    def _create_new_collateral(self, coins, password):
+        w = self.wallet
+        psman = w.psman
+        wfl, err = psman.create_new_collateral_wfl_from_gui(coins, password)
+        if err:
+            self.show_error(err)
+        else:
+            self.show_info(f'Created New Collateral workflow with'
+                           f' txids: {", ".join(wfl.tx_order)}')
+
+    def update_ps_btn(self, is_mixing):
+        ps_button = self.root.ids.ps_button
+        if is_mixing:
+            ps_button.icon = self.ps_icon(active=True)
+        else:
+            ps_button.icon = self.ps_icon()
 
     @profiler
     def load_wallet(self, wallet):
         if self.wallet:
             self.stop_wallet()
         self.wallet = wallet
+        self.wallet.psman.config = self.electrum_config
+        self.wallet.psman.register_callback(self.on_ps_callback,
+                                            ['ps-data-changes',
+                                             'ps-reserved-changes',
+                                             'ps-not-enough-sm-denoms',
+                                             'ps-state-changes'])
         self.wallet_name = wallet.basename()
         self.update_wallet()
         # Once GUI has been initialized check if we want to announce something
@@ -824,17 +1045,23 @@ class ElectrumWindow(App):
         if not self.wallet.up_to_date:
             self._trigger_update_status()
 
-    def get_max_amount(self):
+    def get_max_amount(self, is_ps=False):
         from electrum_dash.transaction import TxOutput
         if run_hook('abort_send', self):
             return ''
-        inputs = self.wallet.get_spendable_coins(None, self.electrum_config)
+        min_rounds = None if not is_ps else self.wallet.psman.mix_rounds
+        include_ps = (min_rounds is None)
+        inputs = self.wallet.get_spendable_coins(None, self.electrum_config,
+                                                 include_ps=include_ps,
+                                                 min_rounds=min_rounds)
         if not inputs:
             return ''
         addr = str(self.send_screen.screen.address) or self.wallet.dummy_address()
         outputs = [TxOutput(TYPE_ADDRESS, addr, '!')]
         try:
-            tx = self.wallet.make_unsigned_transaction(inputs, outputs, self.electrum_config)
+            tx = self.wallet.make_unsigned_transaction(inputs, outputs,
+                                                       self.electrum_config,
+                                                       min_rounds=min_rounds)
         except NoDynamicFeeEstimates as e:
             Clock.schedule_once(lambda dt, bound_e=e: self.show_error(str(bound_e)))
             return ''
@@ -885,13 +1112,14 @@ class ElectrumWindow(App):
     def app_icon(self):
         return ATLAS_ICON % ('logo-testnet' if self.testnet else 'logo')
 
+    def ps_icon(self, active=False):
+        return ATLAS_ICON % ('privatesend_active' if active else 'privatesend')
+
     def on_pause(self):
         self.pause_time = time.time()
         # pause nfc
         if self.nfcscanner:
             self.nfcscanner.nfc_disable()
-        if self.network:
-            self.network.stop()
         if self.wallet:
             self.electrum_config.save_last_wallet(self.wallet)
         return True
@@ -900,8 +1128,6 @@ class ElectrumWindow(App):
         now = time.time()
         if self.wallet and self.wallet.has_password() and now - self.pause_time > 60:
             self.password_dialog(self.wallet, _('Enter PIN'), None, self.stop)
-        if self.network:
-            self.network.start([self.fx.run])
         if self.nfcscanner:
             self.nfcscanner.nfc_enable()
 
@@ -1006,9 +1232,14 @@ class ElectrumWindow(App):
     def _broadcast_thread(self, tx, on_complete):
         status = False
         try:
-            self.network.run_from_another_thread(self.network.broadcast_transaction(tx))
+            coro = self.wallet.psman.broadcast_transaction(tx)
+            self.network.run_from_another_thread(coro)
         except TxBroadcastError as e:
             msg = e.get_message_for_gui()
+        except PSPossibleDoubleSpendError as e:
+            msg = str(e)
+        except PSSpendToPSAddressesError as e:
+            msg = str(e)
         except BestEffortRequestFailed as e:
             msg = repr(e)
         else:
@@ -1033,7 +1264,8 @@ class ElectrumWindow(App):
             self.show_info(_('Sending'))
             threading.Thread(target=self._broadcast_thread, args=(tx, on_complete)).start()
         else:
-            self.show_info(_('Cannot broadcast transaction') + ':\n' + _('Not connected'))
+            self.show_info(_('Cannot broadcast transaction') +
+                           ':\n' + _('Electrum network not connected'))
 
     def description_dialog(self, screen):
         from .uix.dialogs.label_dialog import LabelDialog
@@ -1049,9 +1281,13 @@ class ElectrumWindow(App):
         if amount:
             amount, u = str(amount).split()
             assert u == self.base_unit
-        def cb(amount):
+        is_ps = getattr(screen.parent, 'is_ps', None)
+        def amount_cb(amount):
             screen.amount = amount
-        popup = AmountDialog(show_max, amount, cb)
+        if is_ps is None:
+            popup = AmountDialog(show_max, amount, cb=amount_cb)
+        else:
+            popup = AmountDialog(show_max, amount, is_ps=is_ps, cb=amount_cb)
         popup.open()
 
     def invoices_dialog(self, screen):
@@ -1079,6 +1315,12 @@ class ElectrumWindow(App):
     def addresses_dialog(self, screen):
         from .uix.dialogs.addresses import AddressesDialog
         popup = AddressesDialog(self, screen, None)
+        popup.update()
+        popup.open()
+
+    def coins_dialog(self):
+        from .uix.dialogs.coins_dialog import CoinsDialog
+        popup = CoinsDialog(self)
         popup.update()
         popup.open()
 

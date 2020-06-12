@@ -33,12 +33,12 @@ _min_python_version_tuple = tuple(map(int, (MIN_PYTHON_VERSION.split("."))))
 
 
 if sys.version_info[:3] < _min_python_version_tuple:
-    sys.exit("Error: Electrum-Zcash requires Python version >= %s..." % MIN_PYTHON_VERSION)
+    sys.exit("Error: Electrum requires Python version >= %s..." % MIN_PYTHON_VERSION)
 
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 is_bundle = getattr(sys, 'frozen', False)
-is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "electrum-zcash.desktop"))
+is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "electrum-dash.desktop"))
 is_android = 'ANDROID_DATA' in os.environ
 
 if is_local:  # running from source
@@ -46,7 +46,7 @@ if is_local:  # running from source
     warnings.simplefilter('default', DeprecationWarning)
 
 # move this back to gui/kivy/__init.py once plugins are moved
-os.environ['KIVY_DATA_DIR'] = os.path.abspath(os.path.dirname(__file__)) + '/electrum_zcash/gui/kivy/data/'
+os.environ['KIVY_DATA_DIR'] = os.path.abspath(os.path.dirname(__file__)) + '/electrum_dash/gui/kivy/data/'
 
 if is_local or is_android:
     sys.path.insert(0, os.path.join(script_dir, 'packages'))
@@ -60,7 +60,6 @@ def check_imports():
         import ecdsa
         import certifi
         import qrcode
-        import pbkdf2
         import google.protobuf
         import jsonrpclib
         import aiorpcx
@@ -80,17 +79,17 @@ if not is_android:
     check_imports()
 
 
-from electrum_zcash.logging import get_logger, configure_logging
-from electrum_zcash import util
-from electrum_zcash import constants
-from electrum_zcash import SimpleConfig
-from electrum_zcash.wallet import Wallet
-from electrum_zcash.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
-from electrum_zcash.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
-from electrum_zcash.util import InvalidPassword
-from electrum_zcash.commands import get_parser, known_commands, Commands, config_variables
-from electrum_zcash import daemon
-from electrum_zcash import keystore
+from electrum_dash.logging import get_logger, configure_logging
+from electrum_dash import util
+from electrum_dash import constants
+from electrum_dash import SimpleConfig
+from electrum_dash.wallet import Wallet
+from electrum_dash.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
+from electrum_dash.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
+from electrum_dash.util import InvalidPassword
+from electrum_dash.commands import get_parser, known_commands, Commands, config_variables
+from electrum_dash import daemon
+from electrum_dash import keystore
 
 _logger = get_logger(__name__)
 
@@ -113,7 +112,7 @@ def init_daemon(config_options):
     storage = WalletStorage(config.get_wallet_path())
     if not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'electrum-zcash create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'electrum-dash create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
     if storage.is_encrypted():
         if storage.is_encrypted_with_hw_device():
@@ -151,7 +150,7 @@ def init_cmdline(config_options, server):
 
     if cmd.requires_wallet and not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'electrum-zcash create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'electrum-dash create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
 
     # important warning
@@ -175,6 +174,8 @@ def init_cmdline(config_options, server):
                 sys.exit(1)
     else:
         password = None
+    if getattr(storage, 'backup_message', None):
+        print(f'{storage.backup_message}\n')
 
     config_options['password'] = config_options.get('password') or password
 
@@ -265,7 +266,7 @@ def run_offline_command(config, config_options, plugins):
 
 
 def init_plugins(config, gui_name):
-    from electrum_zcash.plugin import Plugins
+    from electrum_dash.plugin import Plugins
     return Plugins(config, gui_name)
 
 
@@ -310,10 +311,16 @@ if __name__ == '__main__':
 
     # config is an object passed to the various constructors (wallet, interface, gui)
     if is_android:
+        from plyer.platforms.android import activity
+        package_name = activity.getPackageName().lower()
+        if package_name.endswith('testnet'):
+            args.testnet = True
+
         config_options = {
             'verbosity': '',
             'cmd': 'gui',
             'gui': 'kivy',
+            'testnet': args.testnet,
         }
     else:
         config_options = args.__dict__
@@ -337,7 +344,7 @@ if __name__ == '__main__':
     # check uri
     uri = config_options.get('url')
     if uri:
-        if not uri.startswith('zcash:'):
+        if not uri.startswith('dash:'):
             print_stderr('unknown command:', uri)
             sys.exit(1)
         config_options['url'] = uri
@@ -347,10 +354,22 @@ if __name__ == '__main__':
 
     cmdname = config.get('cmd')
 
-    if config.get('testnet'):
-        constants.set_testnet()
-    elif config.get('regtest'):
-        constants.set_regtest()
+    if not config.get('force_mainnet'):
+        if config.get('testnet'):
+            constants.set_testnet()
+            try:
+                from electrum_dash.stacktraces import StackTraces
+                stacktraces_path = os.path.join(config.electrum_path(),
+                                                'stacktraces{ext}')
+                tracer = StackTraces(stacktraces_path,
+                                     traceback_interval=10,
+                                     traceback='html',
+                                     stats=False)
+                tracer.start()
+            except:
+                pass
+        elif config.get('regtest'):
+            constants.set_regtest()
 
     if cmdname == 'gui':
         configure_logging(config)
@@ -390,7 +409,7 @@ if __name__ == '__main__':
                 init_plugins(config, 'cmdline')
                 d = daemon.Daemon(config, fd)
                 if config.get('websocket_server'):
-                    from electrum_zcash import websockets
+                    from electrum_dash import websockets
                     websockets.WebSocketServer(config, d.network)
                 if config.get('requests_dir'):
                     path = os.path.join(config.get('requests_dir'), 'index.html')
@@ -418,7 +437,7 @@ if __name__ == '__main__':
         else:
             cmd = known_commands[cmdname]
             if cmd.requires_network:
-                print_msg("Daemon not running; try 'electrum-zcash daemon start'")
+                print_msg("Daemon not running; try 'electrum-dash daemon start'")
                 sys.exit(1)
             else:
                 plugins = init_plugins(config, 'cmdline')

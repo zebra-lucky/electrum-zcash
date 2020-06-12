@@ -42,7 +42,8 @@ from .bitcoin import (TYPE_ADDRESS, TYPE_PUBKEY, TYPE_SCRIPT, hash_160,
                       opcodes, add_number_to_script, base_decode)
 from .crypto import sha256d
 from .keystore import xpubkey_to_address, xpubkey_to_pubkey
-from .dash_tx import read_extra_payload, serialize_extra_payload, to_varbytes
+from .dash_tx import (ProTxBase, read_extra_payload, serialize_extra_payload,
+                      to_varbytes)
 from .logging import get_logger
 
 
@@ -131,12 +132,16 @@ class BCDataStream(object):
         self.write(string)
 
     def read_bytes(self, length):
-        try:
-            result = self.input[self.read_cursor:self.read_cursor+length]
+        assert length >= 0
+        input_len = len(self.input)
+        read_begin = self.read_cursor
+        read_end = read_begin + length
+        if 0 <= read_begin <= input_len and read_end <= input_len:
+            result = self.input[read_begin:read_end]
             self.read_cursor += length
             return result
-        except IndexError:
-            raise SerializationError("attempt to read past end of buffer") from None
+        else:
+            raise SerializationError('attempt to read past end of buffer')
 
     def can_read_more(self) -> bool:
         return self.bytes_left() > 0
@@ -633,14 +638,23 @@ class Transaction:
         assert not self.is_complete()
         self.raw = None
 
-    def deserialize(self, force_full_parse=False):
+    def deserialize(self, force_full_parse=False,
+                    extra_payload_for_json=False):
         if self.raw is None:
             return
             #self.raw = self.serialize()
         if self._inputs is not None:
             return
         d = deserialize(self.raw, force_full_parse)
-        return self.set_data_from_dict(d)
+        res = self.set_data_from_dict(d)
+        if extra_payload_for_json:
+            extra_payload = self.extra_payload
+            if isinstance(extra_payload, ProTxBase):
+                extra_payload_json = extra_payload._asdict()
+            else:
+                extra_payload_json = bh2u(extra_payload)
+            res.update({'extra_payload': extra_payload_json})
+        return res
 
     def set_data_from_dict(self, d):
         self._inputs = d['inputs']
@@ -981,8 +995,9 @@ class Transaction:
         s, r = self.signature_count()
         return r == s
 
-    def sign(self, keypairs) -> None:
+    def sign(self, keypairs) -> int:
         # keypairs:  (x_)pubkey -> secret_bytes
+        signed_txins_cnt = 0
         for i, txin in enumerate(self.inputs()):
             pubkeys, x_pubkeys = self.get_sorted_pubkeys(txin)
             for j, (pubkey, x_pubkey) in enumerate(zip(pubkeys, x_pubkeys)):
@@ -998,9 +1013,11 @@ class Transaction:
                 sec, compressed = keypairs.get(_pubkey)
                 sig = self.sign_txin(i, sec)
                 self.add_signature_to_txin(i, j, sig)
+                signed_txins_cnt += 1
 
         _logger.info(f"is_complete {self.is_complete()}")
         self.raw = self.serialize()
+        return signed_txins_cnt
 
     def sign_txin(self, txin_index, privkey_bytes) -> str:
         pre_hash = sha256d(bfh(self.serialize_preimage(txin_index)))

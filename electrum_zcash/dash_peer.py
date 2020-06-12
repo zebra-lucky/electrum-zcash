@@ -37,7 +37,7 @@ from .bitcoin import public_key_to_p2pkh
 from .crypto import sha256d
 from .dash_msg import (SporkID, DashType, DashCmd, DashVersionMsg,
                        DashPingMsg, DashPongMsg, DashGetDataMsg,
-                       DashGetMNListDMsg)
+                       DashGetMNListDMsg, DashSendDsqMsg)
 from .ecc import ECPubkey
 from .interface import GracefulDisconnect
 from .logging import Logger
@@ -50,10 +50,6 @@ DASH_PROTO_VERSION = 70214
 LOCAL_IP_ADDR = ipaddress.ip_address('127.0.0.1')
 PAYLOAD_LIMIT = 32*2**20  # 32MiB
 READ_LIMIT = 64*2**10     # 64KiB
-
-
-class PeerDisconnected(Exception):
-    pass
 
 
 def deserialize_peer(peer_str: str) -> Tuple[str, str]:
@@ -71,10 +67,12 @@ class DashPeer(Logger):
 
     LOGGING_SHORTCUT = 'P'
 
-    def __init__(self, dash_net, peer: str, proxy: Optional[dict]):
+    def __init__(self, dash_net, peer: str, proxy: Optional[dict],
+                 debug=False, sml_entry=None, mix_session=None):
         self.default_port = dash_net.default_port
         self.start_str = dash_net.start_str
 
+        self._is_open = False
         self.ready = asyncio.Future()
         self.peer = peer
         self.host, self.port = deserialize_peer(self.peer)
@@ -83,13 +81,14 @@ class DashPeer(Logger):
         self.dash_net = dash_net
         self.loop = dash_net.loop
         self._set_proxy(proxy)
+        self.sml_entry = sml_entry
+        self.mix_session = mix_session
 
         self.sw = None  # StreamWriter
         self.sr = None  # StreamReader
-        self._is_closed = False
 
         # Dump net msgs (only for this peer). Set at runtime from the console.
-        self.debug = False
+        self.debug = debug
 
         # Ping data
         self.ping_start = None
@@ -169,6 +168,7 @@ class DashPeer(Logger):
         self.ready.set_result(1)
 
     async def open(self):
+        self.logger.info('open connection')
         if self.socks_url is None:
             self.sr, self.sw = await asyncio.open_connection(host=self.host,
                                                              port=self.port,
@@ -179,26 +179,22 @@ class DashPeer(Logger):
                                                      port=self.port,
                                                      limit=READ_LIMIT)
 
-        try:
-            verack_received = False
-            version_received = False
-            await self.send_version()
-            for res in [await self.read_next_msg() for i in range(2)]:
-                if self.debug or self.dash_net.debug:
-                    self.logger.info(f'<-- {res}')
-                if res.cmd == 'version':
-                    self.version = res.payload
-                    version_received = True
-                    await self.send_msg('verack')
-                elif res.cmd == 'verack':
-                    verack_received = True
-            if not version_received or not verack_received:
-                ban_msg = 'Peer version handshake failed'
-                await self.ban(ban_msg)
-                raise GracefulDisconnect(ban_msg)
-        except Exception as e:
-            self.logger.info(f'Peer version handshake failed: {repr(e)}')
-            raise GracefulDisconnect(e)
+        self._is_open = True
+        verack_received = False
+        version_received = False
+        await self.send_version()
+        for res in [await self.read_next_msg() for i in range(2)]:
+            if not res:
+                continue
+            if res.cmd == 'version':
+                self.version = res.payload
+                version_received = True
+                await self.send_msg('verack')
+            elif res.cmd == 'verack':
+                verack_received = True
+        if not version_received or not verack_received:
+            raise GracefulDisconnect('Peer version handshake failed')
+        await self.send_msg('senddsq', DashSendDsqMsg(True).serialize())
 
         self.mark_ready()
         self.logger.info(f'connection established')
@@ -207,7 +203,9 @@ class DashPeer(Logger):
                 await group.spawn(self.process_msgs)
                 await group.spawn(self.process_ping)
                 await group.spawn(self.monitor_connection)
-        except (asyncio.CancelledError, OSError, PeerDisconnected) as e:
+        except GracefulDisconnect:
+            raise
+        except (asyncio.CancelledError, OSError) as e:
             raise GracefulDisconnect(e) from e
         except Exception as e:
             raise GracefulDisconnect(e, log_level=logging.ERROR) from e
@@ -217,41 +215,43 @@ class DashPeer(Logger):
             res = await self.read_next_msg()
             if res:
                 dash_net = self.dash_net
-                if self.debug or dash_net.debug:
-                    self.logger.info(f'<-- {res}')
-                if res.cmd == 'ping':
-                    msg = DashPongMsg(res.payload.nonce)
+                cmd = res.cmd
+                payload = res.payload
+                if cmd == 'ping':
+                    msg = DashPongMsg(payload.nonce)
                     await self.send_msg('pong', msg.serialize())
-                elif res.cmd == 'pong':
+                elif cmd == 'pong':
                     now = time.time()
-                    if res.payload.nonce == self.ping_nonce:
+                    if payload.nonce == self.ping_nonce:
                         self.ping_time = round((now - self.ping_start) * 1000)
                         self.ping_nonce = None
                         self.ping_start = None
                     else:
                         self.logger.info(f'pong with unknonw nonce')
-                elif res.cmd == 'spork':
-                    spork_msg = res.payload
+                elif cmd == 'spork':
+                    spork_msg = payload
                     spork_id = spork_msg.nSporkID
                     if not SporkID.has_value(spork_id):
                         self.logger.info(f'unknown spork id: {spork_id}')
                         continue
+
                     def verify_spork():
                         return self.verify_spork(spork_msg)
                     verify_ok = await self.loop.run_in_executor(None,
                                                                 verify_spork)
                     if not verify_ok:
-                        ban_msg = 'verify_spork failed'
-                        await self.ban(ban_msg)
-                        raise GracefulDisconnect(ban_msg)
+                        raise GracefulDisconnect('verify_spork failed')
                     sporks = dash_net.sporks
                     sporks.set_spork(spork_id, spork_msg.nValue, self.peer)
                     dash_net.set_spork_time = time.time()
-                elif res.cmd == 'inv':
+                elif cmd == 'inv':
                     out_inventory = []
-                    for di in res.payload.inventory:
+                    for di in payload.inventory:
                         inv_hash = di.hash
-                        if di.type == DashType.MSG_ISLOCK:
+                        if self.mix_session:
+                            if di.type == DashType.MSG_DSTX:
+                                out_inventory.append(di)
+                        elif di.type == DashType.MSG_ISLOCK:
                             recent_invs = dash_net.recent_islock_invs
                             if inv_hash not in recent_invs:
                                 recent_invs.append(inv_hash)
@@ -259,25 +259,42 @@ class DashPeer(Logger):
                     if out_inventory:
                         msg = DashGetDataMsg(out_inventory)
                         await self.send_msg('getdata', msg.serialize())
-                elif res.cmd == 'addr':
+                elif cmd == 'addr':
                     addresses = [f'{a.ip}:{a.port}'
-                                 for a in res.payload.addresses]
+                                 for a in payload.addresses]
                     found_peers = self.dash_net.found_peers
                     found_peers = found_peers.union(addresses)
-                elif res.cmd == 'mnlistdiff':
+                elif cmd == 'mnlistdiff':
                     try:
-                        self.mnlistdiffs.put_nowait(res.payload)
+                        self.mnlistdiffs.put_nowait(payload)
                     except asyncio.QueueFull:
                         self.logger.info('excess mnlistdiff msg')
-                elif res.cmd == 'islock':
-                    dash_net.append_to_recent_islocks(res.payload)
+                elif cmd == 'islock':
+                    dash_net.append_to_recent_islocks(payload)
+                elif cmd == 'dsq':
+                    if self.mix_session:
+                        if payload.fReady:  # session must ignore other dsq
+                            if self.mix_session.verify_ds_msg_sig(payload):
+                                await self.mix_session.msg_queue.put(res)
+                            else:
+                                exc = Exception(f'dsq vchSig verification'
+                                                f' failed {res}')
+                                await self.mix_session.msg_queue.put(exc)
+                    else:
+                        dash_net.add_recent_dsq(payload)
+                elif cmd == 'dssu' and self.mix_session:
+                    await self.mix_session.msg_queue.put(res)
+                elif cmd == 'dsf' and self.mix_session:
+                    await self.mix_session.msg_queue.put(res)
+                elif cmd == 'dsc' and self.mix_session:
+                    await self.mix_session.msg_queue.put(res)
             await asyncio.sleep(0.1)
 
     async def monitor_connection(self):
         net_timeout = self.dash_net.network.get_network_timeout_seconds()
         while True:
             await asyncio.sleep(1)
-            if self._is_closed:
+            if not self._is_open:
                 raise GracefulDisconnect('peer session was closed')
             read_timeout = self.write_time - self.read_time
             if read_timeout > net_timeout:
@@ -300,14 +317,16 @@ class DashPeer(Logger):
             await self.send_msg('ping', msg_serialized)
             await asyncio.sleep(300)
 
-    async def close(self):
-        if not self._is_closed:
+    def close(self):
+        if self._is_open:
             if self.sw:
                 self.sw.close()
-            self._is_closed = True
+            if self.mix_session:
+                self.mix_session.msg_queue.put_nowait(None)
+            self._is_open = False
             # monitor_connection will cancel tasks
 
-    async def ban(self, ban_msg, ban_seconds=None):
+    def ban(self, ban_msg, ban_seconds=None):
         self.ban_msg = ban_msg
         ban_till = time.time() + ban_seconds if ban_seconds else None
         self.ban_till = ban_till
@@ -318,7 +337,10 @@ class DashPeer(Logger):
         dash_net = self.dash_net
         if self.debug or dash_net.debug:
             dash_cmd = DashCmd(cmd, payload)
-            self.logger.info(f'--> {dash_cmd}')
+            if payload:
+                self.logger.info(f'--> {dash_cmd}')
+            else:
+                self.logger.info(f'--> {dash_cmd} (no payload)')
         cmd_len = len(cmd)
         if cmd_len > 12:
             raise Exception('command str to long')
@@ -381,13 +403,13 @@ class DashPeer(Logger):
                 dash_net.read_bytes += READ_LIMIT
                 start_bytes_read += READ_LIMIT
                 if start_bytes_read > PAYLOAD_LIMIT:
-                    ban_msg = (f'start str not found in '
-                               f'{start_bytes_read} bytes read')
-                    await self.ban(ban_msg)
-                    raise GracefulDisconnect(ban_msg)
+                    raise GracefulDisconnect(f'start str not found in '
+                                             f'{start_bytes_read} bytes read')
             except asyncio.IncompleteReadError:
-                raise PeerDisconnected('start str not found '
-                                       'in buffer, EOF found')
+                if not self._is_open:
+                    return
+                raise GracefulDisconnect('start str not found '
+                                         'in buffer, EOF found')
 
         try:
             res = None
@@ -396,9 +418,7 @@ class DashPeer(Logger):
             payload_size = await self.sr.readexactly(4)
             payload_size = unpack('<I', payload_size)[0]
             if payload_size > PAYLOAD_LIMIT:
-                ban_msg = 'incoming msg payload to large'
-                await self.ban(ban_msg)
-                raise GracefulDisconnect(ban_msg)
+                raise GracefulDisconnect('incoming msg payload to large')
             checksum = await self.sr.readexactly(4)
             self.read_time = dash_net.read_time = time.time()
             self.read_bytes += 20
@@ -407,8 +427,11 @@ class DashPeer(Logger):
                 if checksum != EMPTY_PAYLOAD_CHECKSUM:
                     self.logger.info(f'error reading msg {cmd}, '
                                      f'checksum mismatch')
-                    return res
-                return DashCmd(cmd)
+                    return
+                res = DashCmd(cmd)
+                if self.debug or dash_net.debug:
+                    self.logger.info(f'<-- {res} (no payload)')
+                return res
 
             payload = await self.sr.readexactly(payload_size)
             self.read_time = dash_net.read_time = time.time()
@@ -418,12 +441,16 @@ class DashPeer(Logger):
             if checksum != calc_checksum:
                 self.logger.info(f'error reading msg {cmd}, '
                                  f'checksum mismatch')
-                return res
+                return
             res = DashCmd(cmd, payload)
         except asyncio.IncompleteReadError:
-            raise PeerDisconnected('error reading msg, EOF reached')
+            if not self._is_open:
+                return
+            raise GracefulDisconnect('error reading msg, EOF reached')
         except Exception as e:
             raise GracefulDisconnect(e) from e
+        if self.debug or dash_net.debug:
+            self.logger.info(f'<-- {res}')
         return res
 
     def verify_spork(self, spork_msg):

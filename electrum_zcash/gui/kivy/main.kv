@@ -437,6 +437,10 @@ BoxLayout:
                 #minimum_width: '1dp'
                 on_release: app.popup_dialog('status')
 
+            PSActionButton:
+                id: ps_button
+                on_release: app.popup_dialog('privatesend')
+
             ActionOverflow:
                 id: ao
                 ActionOvrButton:
@@ -447,10 +451,13 @@ BoxLayout:
                     text: _('Wallets')
                 ActionOvrButton:
                     name: 'network'
-                    text: _('Network')
+                    text: _('Electrum Network')
                 ActionOvrButton:
                     name: 'dash_net'
                     text: _('Dash Network')
+                ActionOvrButton:
+                    name: 'privatesend'
+                    text: _('PrivateSend')
                 ActionOvrButton:
                     name: 'settings'
                     text: _('Settings')

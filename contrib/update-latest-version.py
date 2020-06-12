@@ -19,20 +19,20 @@ except ImportError as e:
     sys.exit(1)
 
 try:
-    imp.load_module('electrum_zcash', *imp.find_module('../electrum_zcash'))
-    from electrum_zcash import constants, keystore, storage, SimpleConfig
-    from electrum_zcash.version import ELECTRUM_VERSION
-    from electrum_zcash.gui.qt import update_checker
-    from electrum_zcash.plugin import Plugins
-    from electrum_zcash.storage import WalletStorage
-    from electrum_zcash.util import InvalidPassword
-    from electrum_zcash.wallet import Wallet
+    imp.load_module('electrum_dash', *imp.find_module('../electrum_dash'))
+    from electrum_dash import constants, keystore, storage, SimpleConfig
+    from electrum_dash.version import ELECTRUM_VERSION
+    from electrum_dash.gui.qt import update_checker
+    from electrum_dash.plugin import Plugins
+    from electrum_dash.storage import WalletStorage
+    from electrum_dash.util import InvalidPassword
+    from electrum_dash.wallet import Wallet
 except ImportError as e:
     print('Import error:', e)
 
 
 HOME_DIR = os.path.expanduser('~')
-CONFIG_NAME = '.update-latest-version-electrum-zcash'
+CONFIG_NAME = '.update-last-version-dash-electrum'
 SIGNING_KEYS = update_checker.UpdateCheck.VERSION_ANNOUNCEMENT_SIGNING_KEYS
 LATEST_VER_FNAME = '.latest-version'
 COMMIT_MSG_TEMPLATE = 'set {fname} to {version}'
@@ -186,7 +186,7 @@ class SignApp(object):
         content_json = json.dumps(content, indent=4)
         print(content_json)
         with open('./%s' % LATEST_VER_FNAME, 'w') as fd:
-            fd.write(content_json)
+            fd.write('%s\n' % content_json)
         if self.make_commit:
             self.commit_latest_version()
 
