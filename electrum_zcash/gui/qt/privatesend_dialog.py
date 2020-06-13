@@ -10,8 +10,8 @@ from PyQt5.QtWidgets import (QPlainTextEdit, QCheckBox, QSpinBox, QVBoxLayout,
                              QMessageBox, QStyle, QStyleOptionSpinBox, QAction,
                              QApplication)
 
-from electrum_dash.dash_ps import filter_log_line, PSLogSubCat, PSStates
-from electrum_dash.i18n import _
+from electrum_zcash.dash_ps import filter_log_line, PSLogSubCat, PSStates
+from electrum_zcash.i18n import _
 
 from .util import (HelpLabel, MessageBoxMixin, read_QIcon, custom_message_box,
                    ColorScheme)
@@ -85,10 +85,10 @@ class FilteredPlainTextEdit(QPlainTextEdit):
         QApplication.clipboard().setText('\n'.join(result_lines))
 
 
-class DashSpinBox(QSpinBox):
+class ZcashSpinBox(QSpinBox):
 
     def paintEvent(self, event):
-        super(DashSpinBox, self).paintEvent(event)
+        super(ZcashSpinBox, self).paintEvent(event)
         styled_element = QStyle.SE_LineEditContents
         panel = QStyleOptionSpinBox()
         self.initStyleOption(panel)
@@ -96,7 +96,7 @@ class DashSpinBox(QSpinBox):
         textRect.adjust(2, 0, -30, 0)
         painter = QPainter(self)
         painter.setPen(QColor(ColorScheme.DEFAULT.as_color()))
-        painter.drawText(textRect, Qt.AlignRight | Qt.AlignVCenter, 'Dash')
+        painter.drawText(textRect, Qt.AlignRight | Qt.AlignVCenter, 'Zcash')
 
 
 def find_ps_dialog(mwin):
@@ -151,7 +151,7 @@ class PSDialogUnsupportedPS(QDialog, MessageBoxMixin):
     def __init__(self, mwin):
         QDialog.__init__(self, parent=None)
         self.setMinimumSize(900, 480)
-        self.setWindowIcon(read_QIcon('electrum-dash.png'))
+        self.setWindowIcon(read_QIcon('electrum-zcash.png'))
         self.mwin = mwin
         self.wallet = mwin.wallet
         self.psman = psman = mwin.wallet.psman
@@ -184,7 +184,7 @@ class PSDialog(QDialog, MessageBoxMixin):
     def __init__(self, mwin):
         QDialog.__init__(self, parent=None)
         self.setMinimumSize(900, 480)
-        self.setWindowIcon(read_QIcon('electrum-dash.png'))
+        self.setWindowIcon(read_QIcon('electrum-zcash.png'))
         self.mwin = mwin
         self.wallet = mwin.wallet
         self.psman = mwin.wallet.psman
@@ -308,7 +308,7 @@ class PSDialog(QDialog, MessageBoxMixin):
         keep_amount_text = psman.keep_amount_data()
         keep_amount_help = psman.keep_amount_data(full_txt=True)
         keep_amount_label = HelpLabel(keep_amount_text + ':', keep_amount_help)
-        self.keep_amount_sb = DashSpinBox()
+        self.keep_amount_sb = ZcashSpinBox()
         self.keep_amount_sb.setMinimum(psman.min_keep_amount)
         self.keep_amount_sb.setMaximum(psman.max_keep_amount)
         self.keep_amount_sb.setValue(psman.keep_amount)

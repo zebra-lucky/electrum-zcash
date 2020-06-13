@@ -1,5 +1,5 @@
-from electrum_dash.util import print_stderr, raw_input
-from electrum_dash.logging import get_logger
+from electrum_zcash.util import print_stderr, raw_input
+from electrum_zcash.logging import get_logger
 
 
 _logger = get_logger(__name__)

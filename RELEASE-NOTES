@@ -1,20 +1,13 @@
 # Release 3.3.8.5
 
- * PrivateSend: Check on small amount of minimal denoms and propose
-   to make new small denoms tx from single larger denom (no change)
- * PrivateSend: fixes related to keypairs cleanup, fix PS balance when
-   other ps coins is presented
- * PrivateSEnd: block receiving GUI when mixing to prevent
-   interfering with addresses reserved for PS use
+ * Upstreamed from Dash Electrum 3.3.8.5 + some upstream changes
+ * Enhance "Detect Tor proxy on wallet startup" option behaviour/UI  #FIXME
  * Android: add button to start Orbot on wallet startup if Tor is not
    detected, fix versionCode for arm64-v8a apk
 
 
 # Release 3.3.8.4
 
- * Trezor/KeepKey plugins: fix signing of CbTx outputs
- * Disable PrivateSend and PrivateSend UI for HW wallets (unsupported),
-   allow mixing amounts below keep amount, other PS fixses
  * android receive screen: copy address instead Payment Request if
    amount is not set
  * add PPA for Focal Fossa (Ubuntu 20.04), android arm64-v8a apk build
@@ -23,36 +16,23 @@
 
 # Release 3.3.8.3
 
- * add Dash PrivateSend support (qt/kivy gui supported)
  * update ecdsa version to 0.14.1
- * some Dash P2P network related code/gui fixes
- * fix islocks handling
- * some ProTx masternodes related code/gui fixes, gather protx
-   info masternodes data and save to local file (protx_info.gz)
  * some kivy gui fixes
- * add new servers to servers.json, servers_testnet.json
 
 
 # Release 3.3.8.2
 
- * fix wallet locking during verification of DIP3 transactions
  * add qt console password locking for SW wallets
 
 
 # Release 3.3.8.1
 
- * fix extra_payload output in Commands.deserialize
  * other small fixes
 
 
 # Release 3.3.8
 
  * appimage: URLs could not be opened on some desktop environments (#5425)
- * add Dash P2P Network for InstantSend support (dash_net, dash_peer,
-   dash_msg modules, qt/kivy gui)
- * add InstantSend support (wallet/stdio/text/qt/kivy)
- * refactor ProTx support (stores ProTX MNs and LLMQ lists in file)
- * refresh checkpoints, use gzipped checkpoints, add testnet checkpoints
  * fix fonts bluring on macOS retina
  * fix android install wizard back button behavior
  * A few other minor bugfixes and usability improvements.
@@ -118,8 +98,8 @@
    significantly for large wallets. (d56917f4)
  * Importing/sweeping WIF keys: stricter checks (#4638, #5290)
  * Electrum protocol: the client's "user agent" has been changed from
-   "3.3.5" to "dash-electrum/3.3.5". Other libraries connecting to servers
-   can consider not "spoofing" to be Dash Electrum. (#5246)
+   "3.3.5" to "electrum-zcash/3.3.5". Other libraries connecting to servers
+   can consider not "spoofing" to be Electrum-Zcash. (#5246)
  * Several other minor bugfixes and usability improvements.
 
 
@@ -145,7 +125,7 @@
 
  * Do not expose users to server error messages (#4968)
  * Notify users of new releases. Release announcements must be signed,
-   and they are verified using a hardcoded Dash address.
+   and they are verified using a hardcoded Zcash address.
  * Hardware wallet fixes (#4991, #4993, #5006)
  * Display only QR code in QRcode Window
  * Randomise locktime of transactions
@@ -220,7 +200,7 @@
 
 # Release 3.2.3.1
 
- * Rename to Dash-Electrum
+ * Rename to Electrum-Zcash
  * Add "Use Tor Proxy on startup" option, add Tor Proxy setup to Win builds,
    add docs to setup Tor Proxy on other platforms. Warning if run without Tor.
 
@@ -234,7 +214,7 @@
    warning in this case. (#4566)
  * Revealer: the PRNG used has been changed (#4649)
  * fix Linux distributables: 'typing' was not bundled, needed for python 3.4
- * fix #4491: on Android, if user had set "uDASH" as base unit, app crashed
+ * fix #4491: on Android, if user had set "uZcash" as base unit, app crashed
  * fix #4497: on Android, paying bip70 invoices from cold start did not work
  * Several other minor bugfixes and usability improvements.
 
@@ -395,7 +375,7 @@
 # Release 3.0.6.3 :
 
  * Fix bip44_derivation call
- * Refresh DASH logo
+ * Refresh Zcash logo
 
 # Release 3.0.6.2 :
 

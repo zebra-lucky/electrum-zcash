@@ -38,7 +38,7 @@ _logger = get_logger(__name__)
 
 HEADER_SIZE = 80  # bytes
 MAX_TARGET = 0x00000FFFFF000000000000000000000000000000000000000000000000000000
-POW_TARGET_SPACING = int(2.5 * 60)  # Dash: 2.5 minutes
+POW_TARGET_SPACING = int(2.5 * 60)  # Zcash: 2.5 minutes
 POW_DGW3_HEIGHT = 68589
 DGW_PAST_BLOCKS = 24
 
@@ -431,7 +431,7 @@ class Blockchain(Logger):
         if os.path.exists(path):
             return
         elif not os.path.exists(util.get_headers_dir(self.config)):
-            raise FileNotFoundError('Dash Electrum headers_dir does not exist. Was it deleted while running?')
+            raise FileNotFoundError('Electrum-Zcash headers_dir does not exist. Was it deleted while running?')
         else:
             raise FileNotFoundError('Cannot find headers file but headers_dir is there. Should be at {}'.format(path))
 

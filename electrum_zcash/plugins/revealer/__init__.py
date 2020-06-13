@@ -1,4 +1,4 @@
-from electrum_dash.i18n import _
+from electrum_zcash.i18n import _
 
 fullname = _('Revealer Backup Utility')
 description = ''.join(["<br/>",

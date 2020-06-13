@@ -8,21 +8,21 @@ fi
 
 cd build
 if [[ -n $TRAVIS_TAG ]]; then
-    BUILD_REPO_URL=https://github.com/akhavr/electrum-dash.git
-    git clone --branch $TRAVIS_TAG $BUILD_REPO_URL electrum-dash
+    BUILD_REPO_URL=https://github.com/akhavr/electrum-zcash.git
+    git clone --branch $TRAVIS_TAG $BUILD_REPO_URL electrum-zcash
 else
-    git clone .. electrum-dash
+    git clone .. electrum-zcash
 fi
 
 
-pushd electrum-dash
+pushd electrum-zcash
 ./contrib/make_locale
 find . -name '*.po' -delete
 find . -name '*.pot' -delete
 popd
 
 # patch buildozer to support APK_VERSION_CODE env
-VERCODE_PATCH_PATH=/home/buildozer/build/contrib/dash/travis
+VERCODE_PATCH_PATH=/home/buildozer/build/contrib/zcash/travis
 VERCODE_PATCH="$VERCODE_PATCH_PATH/read_apk_version_code.patch"
 
 DOCKER_CMD="pushd /opt/buildozer"
@@ -37,20 +37,20 @@ if [[ $ELECTRUM_MAINNET == "false" ]]; then
     DOCKER_CMD="$DOCKER_CMD release-testnet"
 fi
 
-sudo chown -R 1000 electrum-dash
+sudo chown -R 1000 electrum-zcash
 docker run --rm \
     --env APP_ANDROID_ARCH=$APP_ANDROID_ARCH \
-    --env APK_VERSION_CODE=$ELECTRUM_DASH_VERSION_CODE \
-    -v $(pwd)/electrum-dash:/home/buildozer/build \
-    -t zebralucky/electrum-dash-winebuild:Kivy33x bash -c \
+    --env APK_VERSION_CODE=$ELECTRUM_ZCASH_VERSION_CODE \
+    -v $(pwd)/electrum-zcash:/home/buildozer/build \
+    -t zebralucky/electrum-zcash-winebuild:Kivy33x bash -c \
     "$DOCKER_CMD"
 
 FNAME_TAIL=release-unsigned.apk
 if [[ $ELECTRUM_MAINNET == "false" ]]; then
-  PATHNAME_START=electrum-dash/bin/Electrum_DASH_Testnet
+  PATHNAME_START=electrum-zcash/bin/Electrum_Zcash_Testnet
 else
-  PATHNAME_START=electrum-dash/bin/Electrum_DASH
+  PATHNAME_START=electrum-zcash/bin/Electrum_Zcash
 fi
 
-sudo mv $PATHNAME_START-$DASH_ELECTRUM_APK_VERSION-$FNAME_TAIL \
-  $PATHNAME_START-$DASH_ELECTRUM_APK_VERSION-$APP_ANDROID_ARCH-$FNAME_TAIL
+sudo mv $PATHNAME_START-$ELECTRUM_ZCASH_APK_VERSION-$FNAME_TAIL \
+  $PATHNAME_START-$ELECTRUM_ZCASH_APK_VERSION-$APP_ANDROID_ARCH-$FNAME_TAIL

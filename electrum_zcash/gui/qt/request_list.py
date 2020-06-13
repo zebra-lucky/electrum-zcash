@@ -29,11 +29,11 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QMenu
 from PyQt5.QtCore import Qt
 
-from electrum_dash.i18n import _
-from electrum_dash.util import format_time, age
-from electrum_dash.plugin import run_hook
-from electrum_dash.paymentrequest import PR_UNKNOWN
-from electrum_dash.wallet import InternalAddressCorruption
+from electrum_zcash.i18n import _
+from electrum_zcash.util import format_time, age
+from electrum_zcash.plugin import run_hook
+from electrum_zcash.paymentrequest import PR_UNKNOWN
+from electrum_zcash.wallet import InternalAddressCorruption
 
 from .util import MyTreeView, pr_tooltips, pr_icons, read_QIcon
 

@@ -31,11 +31,11 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (QAbstractItemView, QHeaderView, QComboBox,
                              QLabel, QMenu)
 
-from electrum_dash.i18n import _
-from electrum_dash.dash_ps import sort_utxos_by_ps_rounds
-from electrum_dash.dash_tx import PSCoinRounds, SPEC_TX_NAMES
-from electrum_dash.logging import Logger
-from electrum_dash.util import profiler
+from electrum_zcash.i18n import _
+from electrum_zcash.dash_ps import sort_utxos_by_ps_rounds
+from electrum_zcash.dash_tx import PSCoinRounds, SPEC_TX_NAMES
+from electrum_zcash.logging import Logger
+from electrum_zcash.util import profiler
 
 from .util import MyTreeView, ColorScheme, MONOSPACE_FONT, GetDataThread
 

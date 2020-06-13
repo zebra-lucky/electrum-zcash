@@ -13,12 +13,12 @@ from PyQt5.QtWidgets import (QLineEdit, QComboBox, QListWidget, QDoubleSpinBox,
                              QGroupBox, QCheckBox, QPushButton, QGridLayout,
                              QFileDialog, QWizard)
 
-from electrum_dash import dash_tx
-from electrum_dash.bitcoin import COIN, is_b58_address
-from electrum_dash.dash_tx import TxOutPoint, service_to_ip_port
-from electrum_dash.protx import ProTxMN, ProTxService, ProRegTxExc
-from electrum_dash.util import bfh, bh2u
-from electrum_dash.i18n import _
+from electrum_zcash import dash_tx
+from electrum_zcash.bitcoin import COIN, is_b58_address
+from electrum_zcash.dash_tx import TxOutPoint, service_to_ip_port
+from electrum_zcash.protx import ProTxMN, ProTxService, ProRegTxExc
+from electrum_zcash.util import bfh, bh2u
+from electrum_zcash.i18n import _
 
 from .util import MONOSPACE_FONT, icon_path, read_QIcon
 
@@ -42,7 +42,7 @@ class SComboBox(QComboBox):
 
 
 class OutputsList(QListWidget):
-    '''Widget that displays available 1000 DASH outputs.'''
+    '''Widget that displays available 1000 Zcash outputs.'''
     outputSelected = pyqtSignal(dict, name='outputSelected')
     def __init__(self, parent=None):
         super(OutputsList, self).__init__(parent)
@@ -308,7 +308,7 @@ class ImportLegacyWizardPage(QWizardPage):
                 value = 0
 
         if prevout_hash:
-            val_dash = '%s DASH' % (value/COIN) if value else ''
+            val_dash = '%s Zcash' % (value/COIN) if value else ''
             self.collateral_val.setText(val_dash)
             self.collateral_value = value
             self.collateral.setText('%s:%s' % (prevout_hash, prevout_n))
@@ -959,7 +959,7 @@ class CollateralWizardPage(QWizardPage):
         self.frozen_cb = QCheckBox('Include frozen addresses')
         self.frozen_cb.setChecked(False)
         self.frozen_cb.stateChanged.connect(self.frozen_state_changed)
-        self.not_found = QLabel('No 1000 DASH outputs were found.')
+        self.not_found = QLabel('No 1000 Zcash outputs were found.')
         self.not_found.setObjectName('err-label')
         self.not_found.hide()
 
@@ -1458,7 +1458,7 @@ class Dip3MasternodeWizard(QWizard):
         self.setWizardStyle(QWizard.ClassicStyle)
         self.setPixmap(QWizard.LogoPixmap, logo)
         self.setWindowTitle(title)
-        self.setWindowIcon(read_QIcon('electrum-dash.png'))
+        self.setWindowIcon(read_QIcon('electrum-zcash.png'))
         self.setMinimumSize(1000, 450)
 
     def validate_alias(self, alias):
@@ -1586,7 +1586,7 @@ class Dip3FileWizard(QWizard):
         self.setWizardStyle(QWizard.ClassicStyle)
         self.setPixmap(QWizard.LogoPixmap, logo)
         self.setWindowTitle(title)
-        self.setWindowIcon(read_QIcon('electrum-dash.png'))
+        self.setWindowIcon(read_QIcon('electrum-zcash.png'))
         self.setMinimumSize(1000, 450)
 
 

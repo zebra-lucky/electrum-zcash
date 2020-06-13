@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QLineEdit, QStyle, QStyleOptionFrame)
 
 from .util import char_width_in_lineedit, ColorScheme
 
-from electrum_dash.util import (format_satoshis_plain, decimal_point_to_base_unit_name,
+from electrum_zcash.util import (format_satoshis_plain, decimal_point_to_base_unit_name,
                                 FEERATE_PRECISION, quantize_feerate)
 
 

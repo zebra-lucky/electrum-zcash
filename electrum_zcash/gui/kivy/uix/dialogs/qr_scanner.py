@@ -2,7 +2,7 @@ from kivy.app import App
 from kivy.factory import Factory
 from kivy.lang import Builder
 
-Factory.register('QRScanner', module='electrum_dash.gui.kivy.qr_scanner')
+Factory.register('QRScanner', module='electrum_zcash.gui.kivy.qr_scanner')
 
 class QrScannerDialog(Factory.AnimatedPopup):
 
@@ -33,7 +33,7 @@ Builder.load_string('''
     #separator_color: .89, .89, .89, 1
     #separator_height: '1.2dp'
     #title_color: .437, .437, .437, 1
-    #background: 'atlas://electrum_dash/gui/kivy/theming/light/dialog'
+    #background: 'atlas://electrum_zcash/gui/kivy/theming/light/dialog'
     on_activate:
         qrscr.start()
         qrscr.size = self.size

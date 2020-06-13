@@ -15,8 +15,8 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.utils import platform
 
-from electrum_dash.base_wizard import BaseWizard
-from electrum_dash.util import is_valid_email
+from electrum_zcash.base_wizard import BaseWizard
+from electrum_zcash.util import is_valid_email
 
 
 from . import EventsDialog
@@ -31,7 +31,7 @@ test_xpub = "xpub661MyMwAqRbcEbvVtRRSjqxVnaWVUMewVzMiURAKyYratih4TtBpMypzzefmv8z
 
 Builder.load_string('''
 #:import Window kivy.core.window.Window
-#:import _ electrum_dash.gui.kivy.i18n._
+#:import _ electrum_zcash.gui.kivy.i18n._
 
 
 <WizardTextInput@TextInput>
@@ -41,8 +41,8 @@ Builder.load_string('''
     background_color: (1, 1, 1, 1) if self.focus else (0.454, 0.698, 0.909, 1)
     foreground_color: (0.31, 0.31, 0.31, 1) if self.focus else (0.835, 0.909, 0.972, 1)
     hint_text_color: self.foreground_color
-    background_active: 'atlas://electrum_dash/gui/kivy/theming/light/create_act_text_active'
-    background_normal: 'atlas://electrum_dash/gui/kivy/theming/light/create_act_text_active'
+    background_active: 'atlas://electrum_zcash/gui/kivy/theming/light/create_act_text_active'
+    background_normal: 'atlas://electrum_zcash/gui/kivy/theming/light/create_act_text_active'
     size_hint_y: None
     height: '48sp'
 
@@ -87,18 +87,18 @@ Builder.load_string('''
             height: self.minimum_height
             Label:
                 color: root.text_color
-                text: 'DASH ELECTRUM'
+                text: 'Zcash ELECTRUM'
                 size_hint: 1, None
                 height: self.texture_size[1] if self.opacity else 0
                 font_size: '33sp'
-                font_name: 'electrum_dash/gui/kivy/data/fonts/tron/Tr2n.ttf'
+                font_name: 'electrum_zcash/gui/kivy/data/fonts/tron/Tr2n.ttf'
             Label:
                 color: root.text_color
                 text: 'TESTNET' if app.testnet else ''
                 size_hint: 1, None
                 height: self.texture_size[1] if self.opacity else 0
                 font_size: '33sp'
-                font_name: 'electrum_dash/gui/kivy/data/fonts/tron/Tr2n.ttf'
+                font_name: 'electrum_zcash/gui/kivy/data/fonts/tron/Tr2n.ttf'
         GridLayout:
             cols: 1
             id: crcontent
@@ -307,7 +307,7 @@ Builder.load_string('''
     font_size: '18dp'
     text_size: self.width - dp(24), self.height - dp(12)
     color: .1, .1, .1, 1
-    background_normal: 'atlas://electrum_dash/gui/kivy/theming/light/white_bg_round_top'
+    background_normal: 'atlas://electrum_zcash/gui/kivy/theming/light/white_bg_round_top'
     background_down: self.background_normal
     size_hint_y: None
 
@@ -453,7 +453,7 @@ Builder.load_string('''
             id: scan
             height: '48sp'
             on_release: root.scan_xpub()
-            icon: 'atlas://electrum_dash/gui/kivy/theming/light/camera'
+            icon: 'atlas://electrum_zcash/gui/kivy/theming/light/camera'
             size_hint: 1, None
         WizardButton:
             text: _('Paste')
@@ -789,8 +789,8 @@ class RestoreSeedDialog(WizardDialog):
     def __init__(self, wizard, **kwargs):
         super(RestoreSeedDialog, self).__init__(wizard, **kwargs)
         self._test = kwargs['test']
-        from electrum_dash.mnemonic import Mnemonic
-        from electrum_dash.old_mnemonic import words as old_wordlist
+        from electrum_zcash.mnemonic import Mnemonic
+        from electrum_zcash.old_mnemonic import words as old_wordlist
         self.words = set(Mnemonic('en').wordlist).union(set(old_wordlist))
         self.ids.text_input_seed.text = test_seed if is_test else ''
         self.message = _('Please type your seed phrase using the virtual keyboard.')
@@ -1001,7 +1001,7 @@ class InstallWizard(BaseWizard, Widget):
 
         app = App.get_running_app()
         app.show_info_bubble(
-            text=msg, icon='atlas://electrum_dash/gui/kivy/theming/light/important',
+            text=msg, icon='atlas://electrum_zcash/gui/kivy/theming/light/important',
             pos=Window.center, width='200sp', arrow_pos=None, modal=True)
         t = threading.Thread(target = target)
         t.start()

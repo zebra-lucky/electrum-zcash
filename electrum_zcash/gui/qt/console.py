@@ -11,9 +11,9 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
-from electrum_dash import util
-from electrum_dash.i18n import _
-from electrum_dash.plugin import run_hook
+from electrum_zcash import util
+from electrum_zcash.i18n import _
+from electrum_zcash.plugin import run_hook
 
 from .util import (MONOSPACE_FONT, WindowModalDialog, OkButton, CancelButton,
                    Buttons)

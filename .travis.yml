@@ -48,9 +48,9 @@ matrix:
     python: "3.7"
     dist: xenial
 before_install:
-- source contrib/dash/travis/electrum_dash_version_env.sh
-- echo electrum-dash version is $DASH_ELECTRUM_VERSION
-- mkdir -p build && cp contrib/dash/travis/* ./build/
+- source contrib/zcash/travis/electrum_zcash_version_env.sh
+- echo electrum-zcash version is $ELECTRUM_ZCASH_VERSION
+- mkdir -p build && cp contrib/zcash/travis/* ./build/
 - if [[ -n $TRAVIS_TAG ]] && [[ $TRAVIS_OS_NAME == 'osx' ]]; then
       ./build/before_install-osx.sh;
   fi
@@ -83,9 +83,9 @@ deploy:
   api_key:
     secure: uzEWbVBDu/KZLtWmNWbdD/m9FHzMSiHEogEzTiRcxf/zJ/41mrRyJb13j4VK7TCfxyDC3LjPVR65/VKTaGSl5bXKq8RBBT03fOQqV511fwLkTIdz5vgWbqNNZQJAp4JyCgTLqJaklvE41winMFJzyrI1Ukkq/PKpA+c88xz6NR5fl9EJpnm7JrtIkQAs5P4aGMijUft0hGYpBgd+jMSG1WssRFFaWsg99i3EEn8vkVqPLpCal1WxcfQMUPG9cv8MV6m1jfoPExi/pwFzsD93ZVgjlqnPyqyRrfmZj1tilx2p3xZIjVvwTrDaYsYiVfIfiAPBw2cb4nSBRWVsGD0tITXJ7yzetagnJZoC4Jo8koiU4sfRttlj4XU2cFP4ameF3KhlWXF0NoHcqZ3bC+94QAhh/7T4cE9qi8lhrbcsTy0XAPf93377vH6ZFL1hTe9J9NHtDf5PSH01xVIP0NNaWoAUdDkaso5PL3U1v2D0C9ISco2suALHOby7WJ9PjjGiHq8B1cojUCEdExaXormaYu/khJxgT1p2JouhC8NFYdTYXSsylBqBhdHu9subjuwmst61CXem2wNkTdtCAfMdHx6474bmPyHxxS7WYuYbIcuvIK/Mk2kDnURdPuDBF4o8EF2CqEGCkp2Ue63GpJDH6xB1OgKdPxHcwKGwhfxJulc=
   file:
-  - build/electrum-dash/dist/Dash-Electrum-$DASH_ELECTRUM_VERSION-macosx.dmg
+  - build/electrum-zcash/dist/Electrum-Zcash-$ELECTRUM_ZCASH_VERSION-macosx.dmg
   on:
-    repo: akhavr/electrum-dash
+    repo: akhavr/electrum-zcash
     tags: true
     condition: "$TRAVIS_OS_NAME = osx"
 - provider: releases
@@ -93,15 +93,15 @@ deploy:
   api_key:
     secure: uzEWbVBDu/KZLtWmNWbdD/m9FHzMSiHEogEzTiRcxf/zJ/41mrRyJb13j4VK7TCfxyDC3LjPVR65/VKTaGSl5bXKq8RBBT03fOQqV511fwLkTIdz5vgWbqNNZQJAp4JyCgTLqJaklvE41winMFJzyrI1Ukkq/PKpA+c88xz6NR5fl9EJpnm7JrtIkQAs5P4aGMijUft0hGYpBgd+jMSG1WssRFFaWsg99i3EEn8vkVqPLpCal1WxcfQMUPG9cv8MV6m1jfoPExi/pwFzsD93ZVgjlqnPyqyRrfmZj1tilx2p3xZIjVvwTrDaYsYiVfIfiAPBw2cb4nSBRWVsGD0tITXJ7yzetagnJZoC4Jo8koiU4sfRttlj4XU2cFP4ameF3KhlWXF0NoHcqZ3bC+94QAhh/7T4cE9qi8lhrbcsTy0XAPf93377vH6ZFL1hTe9J9NHtDf5PSH01xVIP0NNaWoAUdDkaso5PL3U1v2D0C9ISco2suALHOby7WJ9PjjGiHq8B1cojUCEdExaXormaYu/khJxgT1p2JouhC8NFYdTYXSsylBqBhdHu9subjuwmst61CXem2wNkTdtCAfMdHx6474bmPyHxxS7WYuYbIcuvIK/Mk2kDnURdPuDBF4o8EF2CqEGCkp2Ue63GpJDH6xB1OgKdPxHcwKGwhfxJulc=
   file:
-  - build/electrum-dash/dist/Dash-Electrum-$DASH_ELECTRUM_VERSION.tar.gz
-  - build/electrum-dash/dist/Dash-Electrum-$DASH_ELECTRUM_VERSION.zip
-  - build/electrum-dash/dist/Dash-Electrum-$DASH_ELECTRUM_VERSION-x86_64.AppImage
-  - build/electrum-dash/dist/Dash-Electrum-$DASH_ELECTRUM_VERSION-setup-win32.exe
-  - build/electrum-dash/dist/Dash-Electrum-$DASH_ELECTRUM_VERSION-setup-win64.exe
-  - build/electrum-dash/bin/Electrum_DASH-$DASH_ELECTRUM_APK_VERSION-$APP_ANDROID_ARCH-release-unsigned.apk
-  - build/electrum-dash/bin/Electrum_DASH_Testnet-$DASH_ELECTRUM_APK_VERSION-$APP_ANDROID_ARCH-release-unsigned.apk
+  - build/electrum-zcash/dist/Electrum-Zcash-$ELECTRUM_ZCASH_VERSION.tar.gz
+  - build/electrum-zcash/dist/Electrum-Zcash-$ELECTRUM_ZCASH_VERSION.zip
+  - build/electrum-zcash/dist/Electrum-Zcash-$ELECTRUM_ZCASH_VERSION-x86_64.AppImage
+  - build/electrum-zcash/dist/Electrum-Zcash-$ELECTRUM_ZCASH_VERSION-setup-win32.exe
+  - build/electrum-zcash/dist/Electrum-Zcash-$ELECTRUM_ZCASH_VERSION-setup-win64.exe
+  - build/electrum-zcash/bin/Electrum_Zcash-$ELECTRUM_ZCASH_APK_VERSION-$APP_ANDROID_ARCH-release-unsigned.apk
+  - build/electrum-zcash/bin/Electrum_Zcash_Testnet-$ELECTRUM_ZCASH_APK_VERSION-$APP_ANDROID_ARCH-release-unsigned.apk
   on:
-    repo: akhavr/electrum-dash
+    repo: akhavr/electrum-zcash
     tags: true
     condition: "$TRAVIS_OS_NAME = linux"
 notifications:

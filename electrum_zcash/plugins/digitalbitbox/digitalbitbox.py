@@ -15,22 +15,22 @@ import struct
 import sys
 import time
 
-from electrum_dash.crypto import sha256d, EncodeAES_base64, EncodeAES_bytes, DecodeAES_bytes, hmac_oneshot
-from electrum_dash.bitcoin import (TYPE_ADDRESS, push_script, var_int, public_key_to_p2pkh,
+from electrum_zcash.crypto import sha256d, EncodeAES_base64, EncodeAES_bytes, DecodeAES_bytes, hmac_oneshot
+from electrum_zcash.bitcoin import (TYPE_ADDRESS, push_script, var_int, public_key_to_p2pkh,
                                    is_address)
-from electrum_dash.bip32 import BIP32Node
-from electrum_dash import ecc
-from electrum_dash.ecc import msg_magic
-from electrum_dash.wallet import Standard_Wallet
-from electrum_dash import constants
-from electrum_dash.transaction import Transaction
-from electrum_dash.i18n import _
-from electrum_dash.keystore import Hardware_KeyStore
+from electrum_zcash.bip32 import BIP32Node
+from electrum_zcash import ecc
+from electrum_zcash.ecc import msg_magic
+from electrum_zcash.wallet import Standard_Wallet
+from electrum_zcash import constants
+from electrum_zcash.transaction import Transaction
+from electrum_zcash.i18n import _
+from electrum_zcash.keystore import Hardware_KeyStore
 from ..hw_wallet import HW_PluginBase
-from electrum_dash.util import to_string, UserCancelled, UserFacingException
-from electrum_dash.base_wizard import ScriptTypeNotSupported, HWD_SETUP_NEW_WALLET
-from electrum_dash.network import Network
-from electrum_dash.logging import get_logger
+from electrum_zcash.util import to_string, UserCancelled, UserFacingException
+from electrum_zcash.base_wizard import ScriptTypeNotSupported, HWD_SETUP_NEW_WALLET
+from electrum_zcash.network import Network
+from electrum_zcash.logging import get_logger
 
 
 _logger = get_logger(__name__)
@@ -313,7 +313,7 @@ class DigitalBitbox_Client():
 
     def dbb_generate_wallet(self):
         key = self.stretch_key(self.password)
-        filename = ("Dash-Electrum-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf")
+        filename = ("Electrum-Zcash-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf")
         msg = ('{"seed":{"source": "create", "key": "%s", "filename": "%s", "entropy": "%s"}}' % (key, filename, to_hexstr(os.urandom(32)))).encode('utf8')
         reply = self.hid_send_encrypt(msg)
         if 'error' in reply:

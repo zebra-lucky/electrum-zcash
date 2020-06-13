@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Search and replaces BTC addresses and private keys in WIF to DASH variant"""
+"""Search and replaces BTC addresses and private keys in WIF to Zcash"""
 
 import click
 import imp
 import re
 
-imp.load_module('electrum_dash', *imp.find_module('../../electrum_dash'))
+imp.load_module('electrum_zcash', *imp.find_module('../../electrum_zcash'))
 
-from electrum_dash import constants
-from electrum_dash.bitcoin import (b58_address_to_hash160, hash160_to_b58_address,
+from electrum_zcash import constants
+from electrum_zcash.bitcoin import (b58_address_to_hash160, hash160_to_b58_address,
                          serialize_privkey, DecodeBase58Check, WIF_SCRIPT_TYPES)
-from electrum_dash.util import inv_dict
+from electrum_zcash.util import inv_dict
 
 
 ADDR_PATTERN = re.compile(

@@ -1,4 +1,4 @@
-electrum-dash (3.0.6~rc2-0ppa1~ubuntu18.04.1) bionic; urgency=medium
+electrum-zcash (3.0.6~rc2-0ppa1~ubuntu18.04.1) bionic; urgency=medium
 
   * Port to ppa
 

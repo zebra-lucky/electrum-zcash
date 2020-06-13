@@ -1,7 +1,7 @@
-from electrum_dash import transaction
-from electrum_dash.dash_tx import DashTxError
-from electrum_dash.util import bfh
-from electrum_dash.commands import Commands
+from electrum_zcash import transaction
+from electrum_zcash.dash_tx import ZcashTxError
+from electrum_zcash.util import bfh
+from electrum_zcash.commands import Commands
 
 from . import SequentialTestCase
 
@@ -196,7 +196,7 @@ WRONG_SPEC_TX = (  # Tx version < 3
     '4d22769c3a4f90b2dcd0de88ac00000000')
 
 
-class TestDashSpecTxSerialization(SequentialTestCase):
+class TestZcashSpecTxSerialization(SequentialTestCase):
 
     def test_dash_tx_v2(self):
         tx = transaction.Transaction(V2_TX)
@@ -452,7 +452,7 @@ class TestDashSpecTxSerialization(SequentialTestCase):
 
     def test_dash_tx_unknown_spec_tx(self):
         tx = transaction.Transaction(UNKNOWN_SPEC_TX)
-        with self.assertRaises(DashTxError):
+        with self.assertRaises(ZcashTxError):
             tx.deserialize()
 
     def test_dash_tx_wrong_spec_tx(self):
@@ -477,7 +477,7 @@ class TestDashSpecTxSerialization(SequentialTestCase):
 
     def test_deserialize_transaction_unknown_spec_tx(self):
         cmds = Commands(config=None, wallet=None, network=None)
-        with self.assertRaises(DashTxError):
+        with self.assertRaises(ZcashTxError):
             cmds.deserialize(UNKNOWN_SPEC_TX)
 
     def test_serialize_command_with_extra_payload(self):

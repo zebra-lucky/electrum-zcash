@@ -30,8 +30,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLineEdit, QLabel, QGridLayout, QVBoxLayout, QCheckBox
 
-from electrum_dash.i18n import _
-from electrum_dash.plugin import run_hook
+from electrum_zcash.i18n import _
+from electrum_zcash.plugin import run_hook
 
 from .util import icon_path, WindowModalDialog, OkButton, CancelButton, Buttons
 
@@ -249,7 +249,7 @@ class ChangePasswordDialogForSW(ChangePasswordDialogBase):
             msg += ' ' + _('Use this dialog to add a password to your wallet.')
         else:
             if not is_encrypted:
-                msg = _('Your Dash coins are password protected. However, your wallet file is not encrypted.')
+                msg = _('Your Zcash coins are password protected. However, your wallet file is not encrypted.')
             else:
                 msg = _('Your wallet is password protected and encrypted.')
             msg += ' ' + _('Use this dialog to change your password.')

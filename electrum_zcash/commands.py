@@ -95,7 +95,7 @@ def command(s):
             wallet = args[0].wallet
             password = kwargs.get('password')
             if c.requires_wallet and wallet is None:
-                raise Exception("wallet not loaded. Use 'electrum-dash daemon load_wallet'")
+                raise Exception("wallet not loaded. Use 'electrum-zcash daemon load_wallet'")
             if c.requires_password and password is None and wallet.has_password():
                 return {'error': 'Password required' }
             return func(*args, **kwargs)
@@ -159,8 +159,8 @@ class Commands:
     @command('')
     def restore(self, text, passphrase=None, password=None, encrypt_file=True):
         """Restore a wallet from text. Text can be a seed phrase, a master
-        public key, a master private key, a list of Dash addresses
-        or Dash private keys.
+        public key, a master private key, a list of Zcash addresses
+        or Zcash private keys.
         If you want to be prompted for an argument, type '?' or ':' (concealed)
         """
         d = restore_wallet_from_text(text,
@@ -343,7 +343,7 @@ class Commands:
     @command('')
     def dumpprivkeys(self):
         """Deprecated."""
-        return "This command is deprecated. Use a pipe instead: 'electrum-dash listaddresses | electrum-dash getprivatekeys - '"
+        return "This command is deprecated. Use a pipe instead: 'electrum-zcash listaddresses | electrum-zcash getprivatekeys - '"
 
     @command('')
     def validateaddress(self, address):
@@ -379,7 +379,7 @@ class Commands:
 
     @command('n')
     def getmerkle(self, txid, height):
-        """Get Merkle branch of a transaction included in a block. Dash Electrum
+        """Get Merkle branch of a transaction included in a block. Electrum-Zcash
         uses this to verify transactions (Simple Payment Verification)."""
         return self.network.run_from_another_thread(self.network.get_merkle_for_transaction(txid, int(height)))
 
@@ -390,7 +390,7 @@ class Commands:
 
     @command('')
     def version(self):
-        """Return the version of Dash Electrum."""
+        """Return the version of Electrum-Zcash."""
         from .version import ELECTRUM_VERSION
         return ELECTRUM_VERSION
 
@@ -525,7 +525,7 @@ class Commands:
 
     @command('w')
     def setlabel(self, key, label):
-        """Assign a label to an item. Item may be a Dash address or a
+        """Assign a label to an item. Item may be a Zcash address or a
         transaction ID"""
         self.wallet.set_label(key, label)
 
@@ -617,7 +617,7 @@ class Commands:
             PR_PAID: 'Paid',
             PR_EXPIRED: 'Expired',
         }
-        out['amount (DASH)'] = format_satoshis(out.get('amount'))
+        out['amount (Zcash)'] = format_satoshis(out.get('amount'))
         out['status'] = pr_str[out.get('status', PR_UNKNOWN)]
         return out
 
@@ -975,8 +975,8 @@ def eval_bool(x: str) -> bool:
 
 param_descriptions = {
     'privkey': 'Private key. Type \'?\' to get a prompt.',
-    'destination': 'Dash address, contact or alias',
-    'address': 'Dash address',
+    'destination': 'Zcash address, contact or alias',
+    'address': 'Zcash address',
     'seed': 'Seed phrase',
     'txid': 'Transaction ID',
     'pos': 'Position',
@@ -986,17 +986,17 @@ param_descriptions = {
     'pubkey': 'Public key',
     'message': 'Clear text message. Use quotes if it contains spaces.',
     'encrypted': 'Encrypted message',
-    'amount': 'Amount to be sent (in DASH). Type \'!\' to send the maximum available.',
-    'requested_amount': 'Requested amount (in DASH).',
+    'amount': 'Amount to be sent (in Zcash). Type \'!\' to send the maximum available.',
+    'requested_amount': 'Requested amount (in Zcash).',
     'outputs': 'list of ["address", amount]',
     'redeem_script': 'redeem script (hexadecimal)',
-    'conf_file': 'Masternode.conf file from Dash.',
+    'conf_file': 'Masternode.conf file from Zcash.',
     'alias': 'Masternode alias.',
     'cpfile': 'Checkpoints file',
 }
 
 command_options = {
-    'broadcast':   (None, "Broadcast the transaction to the Dash network"),
+    'broadcast':   (None, "Broadcast the transaction to the Zcash network"),
     'password':    ("-W", "Password"),
     'new_password':(None, "New Password"),
     'encrypt_file':(None, "Whether the file on disk should be encrypted with the provided password"),
@@ -1009,7 +1009,7 @@ command_options = {
     'labels':      ("-l", "Show the labels of listed addresses"),
     'nocheck':     (None, "Do not verify aliases"),
     'imax':        (None, "Maximum number of inputs"),
-    'fee':         ("-f", "Transaction fee (in Dash)"),
+    'fee':         ("-f", "Transaction fee (in Zcash)"),
     'from_addr':   ("-F", "Source address (must be a wallet address; use sweep to spend from non-wallet address)."),
     'change_addr': ("-c", "Change address. Default is a spare address, or the source address if it's not in the wallet"),
     'nbits':       (None, "Number of bits of entropy"),
@@ -1068,10 +1068,10 @@ config_variables = {
         'requests_dir': 'directory where a bip70 file will be written.',
         'ssl_privkey': 'Path to your SSL private key, needed to sign the request.',
         'ssl_chain': 'Chain of SSL certificates, needed for signed requests. Put your certificate at the top and the root CA at the end',
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of dash: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.dash.org/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of dash: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.zcash.org/\')\"',
     },
     'listrequests':{
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of dash: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.dash.org/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of dash: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.zcash.org/\')\"',
     }
 }
 
@@ -1142,7 +1142,7 @@ def add_global_options(parser):
     group = parser.add_argument_group('global options')
     group.add_argument("-v", dest="verbosity", help="Set verbosity (log levels)", default='')
     group.add_argument("-V", dest="verbosity_shortcuts", help="Set verbosity (shortcut-filter list)", default='')
-    group.add_argument("-D", "--dir", dest="electrum_path", help="electrum-dash directory")
+    group.add_argument("-D", "--dir", dest="electrum_path", help="electrum-zcash directory")
     group.add_argument("-P", "--portable", action="store_true", dest="portable", default=False, help="Use local 'electrum_data' directory")
     group.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
     group.add_argument("--testnet", action="store_true", dest="testnet", default=force_testnet, help="Use Testnet")
@@ -1152,11 +1152,11 @@ def add_global_options(parser):
 def get_parser():
     # create main parser
     parser = argparse.ArgumentParser(
-        epilog="Run 'electrum-dash help <command>' to see the help for a command")
+        epilog="Run 'electrum-zcash help <command>' to see the help for a command")
     add_global_options(parser)
     subparsers = parser.add_subparsers(dest='cmd', metavar='<command>')
     # gui
-    parser_gui = subparsers.add_parser('gui', description="Run Dash Electrum Graphical User Interface.", help="Run GUI (default)")
+    parser_gui = subparsers.add_parser('gui', description="Run Electrum-Zcash Graphical User Interface.", help="Run GUI (default)")
     parser_gui.add_argument("url", nargs='?', default=None, help="dash URI (or bip70 file)")
     parser_gui.add_argument("-g", "--gui", dest="gui", help="select graphical user interface", choices=['qt', 'kivy', 'text', 'stdio'])
     parser_gui.add_argument("-o", "--offline", action="store_true", dest="offline", default=False, help="Run offline")

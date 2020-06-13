@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-export PYBUILD_NAME=electrum-dash
+export PYBUILD_NAME=electrum-zcash
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
@@ -10,19 +10,19 @@ override_dh_installchangelogs::
 
 override_dh_auto_install::
 	dh_auto_install
-	mkdir -p debian/electrum-dash/usr/bin \
-             debian/electrum-dash/usr/share
-	cp -r debian/python3-electrum-dash/usr/bin \
-       debian/electrum-dash/usr
-	cp -r debian/python3-electrum-dash/usr/share/applications \
-       debian/electrum-dash/usr/share
-	cp -r debian/python3-electrum-dash/usr/share/pixmaps \
-       debian/electrum-dash/usr/share
-	mkdir -p debian/dash-electrum/usr/bin \
-             debian/dash-electrum/usr/share
-	mv debian/python3-electrum-dash/usr/bin \
-       debian/dash-electrum/usr
-	mv debian/python3-electrum-dash/usr/share/applications \
-       debian/dash-electrum/usr/share
-	mv debian/python3-electrum-dash/usr/share/pixmaps \
-       debian/dash-electrum/usr/share
+	mkdir -p debian/electrum-zcash/usr/bin \
+             debian/electrum-zcash/usr/share
+	cp -r debian/python3-electrum-zcash/usr/bin \
+       debian/electrum-zcash/usr
+	cp -r debian/python3-electrum-zcash/usr/share/applications \
+       debian/electrum-zcash/usr/share
+	cp -r debian/python3-electrum-zcash/usr/share/pixmaps \
+       debian/electrum-zcash/usr/share
+	mkdir -p debian/electrum-zcash/usr/bin \
+             debian/electrum-zcash/usr/share
+	mv debian/python3-electrum-zcash/usr/bin \
+       debian/electrum-zcash/usr
+	mv debian/python3-electrum-zcash/usr/share/applications \
+       debian/electrum-zcash/usr/share
+	mv debian/python3-electrum-zcash/usr/share/pixmaps \
+       debian/electrum-zcash/usr/share

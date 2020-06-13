@@ -1,7 +1,7 @@
 #:import Clock kivy.clock.Clock
 #:import Window kivy.core.window.Window
 #:import Factory kivy.factory.Factory
-#:import _ electrum_dash.gui.kivy.i18n._
+#:import _ electrum_zcash.gui.kivy.i18n._
 
 
 ###########################
@@ -189,7 +189,7 @@
         Color:
             rgba: 0.192, .498, 0.745, 1
         BorderImage:
-            source: 'atlas://electrum_dash/gui/kivy/theming/light/card_bottom'
+            source: 'atlas://electrum_zcash/gui/kivy/theming/light/card_bottom'
             size: self.size
             pos: self.pos
 
@@ -203,7 +203,7 @@
 		Color:
 			rgba: 0.192, .498, 0.745, 1
 		BorderImage:
-			source: 'atlas://electrum_dash/gui/kivy/theming/light/card_bottom'
+			source: 'atlas://electrum_zcash/gui/kivy/theming/light/card_bottom'
 			size: self.size
 			pos: self.pos
 
@@ -216,7 +216,7 @@
 		Color:
 			rgba: 0.192, .498, 0.745, 1
         BorderImage:
-            source: 'atlas://electrum_dash/gui/kivy/theming/light/card_bottom'
+            source: 'atlas://electrum_zcash/gui/kivy/theming/light/card_bottom'
             size: self.size
             pos: self.pos
 
@@ -324,8 +324,8 @@
     valign: 'middle'
     bold: True
     font_size: '12.5sp'
-    background_normal: 'atlas://electrum_dash/gui/kivy/theming/light/tab_btn'
-    background_down: 'atlas://electrum_dash/gui/kivy/theming/light/tab_btn_pressed'
+    background_normal: 'atlas://electrum_zcash/gui/kivy/theming/light/tab_btn'
+    background_down: 'atlas://electrum_zcash/gui/kivy/theming/light/tab_btn_pressed'
 
 
 <ColoredLabel@Label>:
@@ -414,7 +414,7 @@ BoxLayout:
             rgb: .6, .6, .6
         Rectangle:
             size: self.size
-            source: 'electrum_dash/gui/kivy/data/background.png'
+            source: 'electrum_zcash/gui/kivy/data/background.png'
 
     ActionBar:
 
@@ -454,7 +454,7 @@ BoxLayout:
                     text: _('Electrum Network')
                 ActionOvrButton:
                     name: 'dash_net'
-                    text: _('Dash Network')
+                    text: _('Zcash Network')
                 ActionOvrButton:
                     name: 'privatesend'
                     text: _('PrivateSend')

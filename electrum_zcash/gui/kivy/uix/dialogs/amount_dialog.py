@@ -4,7 +4,7 @@ from kivy.properties import StringProperty
 from kivy.lang import Builder
 from decimal import Decimal
 
-from electrum_dash.bitcoin import COIN
+from electrum_zcash.bitcoin import COIN
 
 
 Builder.load_string('''

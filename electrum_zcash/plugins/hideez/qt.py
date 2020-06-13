@@ -4,10 +4,10 @@ import threading
 from PyQt5.QtWidgets import (QVBoxLayout, QLabel, QGridLayout,
                              QWidget, QTabWidget)
 
-from electrum_dash.gui.qt.util import WindowModalDialog, Buttons, CloseButton
-from electrum_dash.i18n import _
-from electrum_dash.plugin import hook
-from electrum_dash.util import bh2u
+from electrum_zcash.gui.qt.util import WindowModalDialog, Buttons, CloseButton
+from electrum_zcash.i18n import _
+from electrum_zcash.plugin import hook
+from electrum_zcash.util import bh2u
 
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
 from ..hw_wallet.plugin import only_hook_if_libraries_available
@@ -19,16 +19,16 @@ PASSPHRASE_HELP_SHORT = _(
     "Passphrases allow you to access new wallets, each "
     "hidden behind a particular case-sensitive passphrase.")
 PASSPHRASE_HELP = PASSPHRASE_HELP_SHORT + "  " + _(
-    "You need to create a separate Dash-Electrum wallet for each passphrase "
+    "You need to create a separate Electrum-Zcash wallet for each passphrase "
     "you use as they each generate different addresses.  Changing "
     "your passphrase does not lose other wallets, each is still "
     "accessible behind its own passphrase.")
 RECOMMEND_PIN = _(
     "You should enable PIN protection.  Your PIN is the only protection "
-    "for your Dash coins if your device is lost or stolen.")
+    "for your Zcash coins if your device is lost or stolen.")
 PASSPHRASE_NOT_PIN = _(
     "If you forget a passphrase you will be unable to access any "
-    "Dash coins in the wallet behind it.  A passphrase is not a PIN. "
+    "Zcash coins in the wallet behind it.  A passphrase is not a PIN. "
     "Only change this if you are sure you understand it.")
 
 

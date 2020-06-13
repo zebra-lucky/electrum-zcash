@@ -24,11 +24,11 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from electrum_dash.plugin import BasePlugin, hook
-from electrum_dash.i18n import _
-from electrum_dash.bitcoin import is_address, TYPE_SCRIPT, opcodes
-from electrum_dash.util import bfh, versiontuple, UserFacingException
-from electrum_dash.transaction import TxOutput, Transaction
+from electrum_zcash.plugin import BasePlugin, hook
+from electrum_zcash.i18n import _
+from electrum_zcash.bitcoin import is_address, TYPE_SCRIPT, opcodes
+from electrum_zcash.util import bfh, versiontuple, UserFacingException
+from electrum_zcash.transaction import TxOutput, Transaction
 
 
 class HW_PluginBase(BasePlugin):
@@ -72,7 +72,7 @@ class HW_PluginBase(BasePlugin):
         if keystore is None:
             keystore = wallet.get_keystore()
         if not is_address(address):
-            keystore.handler.show_error(_('Invalid Dash Address'))
+            keystore.handler.show_error(_('Invalid Zcash Address'))
             return False
         if not wallet.is_mine(address):
             keystore.handler.show_error(_('Address not in wallet.'))

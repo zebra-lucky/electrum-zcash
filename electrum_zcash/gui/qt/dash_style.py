@@ -1,13 +1,13 @@
-"""Dash look and feel."""
+"""Zcash look and feel."""
 
 import os
-from electrum_dash.util import pkg_dir
+from electrum_zcash.util import pkg_dir
 
 
 dash_stylesheet = """
 
 /**********************/
-/* DASH Evolution CSS */
+/* Zcash Evolution CSS */
 /*
 0. OSX Reset
 1. Navigation Bar

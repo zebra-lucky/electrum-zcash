@@ -275,7 +275,7 @@ class Abstract_Wallet(AddressSynchronizer):
             addr = str(addrs[0])
             if not bitcoin.is_address(addr):
                 neutered_addr = addr[:5] + '..' + addr[-2:]
-                raise WalletFileException(f'The addresses in this wallet are not Dash addresses.\n'
+                raise WalletFileException(f'The addresses in this wallet are not Zcash addresses.\n'
                                           f'e.g. {neutered_addr} (length: {len(addr)})')
 
     def calc_unused_change_addresses(self):
@@ -367,7 +367,7 @@ class Abstract_Wallet(AddressSynchronizer):
         if self.is_watching_only():
             raise Exception(_("This is a watching-only wallet"))
         if not is_address(address):
-            raise Exception(f"Invalid Dash address: {address}")
+            raise Exception(f"Invalid Zcash address: {address}")
         if not self.is_mine(address):
             raise Exception(_('Address not in wallet.') + f' {address}')
         index = self.get_address_index(address)
@@ -738,7 +738,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 addrs = [addr for addr in addrs if addr not in ps_addrs]
                 change_addrs = [random.choice(addrs[-limit:])] if addrs else []
         for addr in change_addrs:
-            assert is_address(addr), f"not valid Dash address: {addr}"
+            assert is_address(addr), f"not valid Zcash address: {addr}"
             # note that change addresses are not necessarily ismine
             # in which case this is a no-op
             self.check_address(addr)
@@ -757,7 +757,7 @@ class Abstract_Wallet(AddressSynchronizer):
         for i, o in enumerate(outputs):
             if o.type == TYPE_ADDRESS:
                 if not is_address(o.address):
-                    raise Exception("Invalid Dash address: {}".format(o.address))
+                    raise Exception("Invalid Zcash address: {}".format(o.address))
             if o.value == '!':
                 if i_max is not None:
                     raise Exception("More than one output set to spend max")
@@ -1140,7 +1140,7 @@ class Abstract_Wallet(AddressSynchronizer):
     def add_payment_request(self, req, config):
         addr = req['address']
         if not bitcoin.is_address(addr):
-            raise Exception(_('Invalid Dash address.'))
+            raise Exception(_('Invalid Zcash address.'))
         if not self.is_mine(addr):
             raise Exception(_('Address not in wallet.'))
         ps_addrs = self.db.get_ps_addresses()
@@ -1345,7 +1345,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 p = self.price_at_timestamp(txid, price_func)
                 return p * txin_value/Decimal(COIN)
 
-    # Dash Abstract_Wallet additions
+    # Zcash Abstract_Wallet additions
     def get_delegate_private_key(self, pubkey):
         """Get the private delegate key for pubkey."""
         return self.masternode_delegates.get(pubkey, '')
@@ -1969,8 +1969,8 @@ def restore_wallet_from_text(text, *, path, network=None,
                              passphrase=None, password=None, encrypt_file=True,
                              gap_limit=None):
     """Restore a wallet from text. Text can be a seed phrase, a master
-    public key, a master private key, a list of Dash addresses
-    or Dash private keys."""
+    public key, a master private key, a list of Zcash addresses
+    or Zcash private keys."""
     storage = WalletStorage(path)
     if storage.file_exists():
         raise Exception("Remove the existing wallet first!")

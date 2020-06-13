@@ -6,4 +6,4 @@ if [[ $ELECTRUM_MAINNET == "true" ]] && [[ -z $IS_RELEASE ]]; then
     exit 0
 fi
 
-docker pull zebralucky/electrum-dash-winebuild:Kivy33x
+docker pull zebralucky/electrum-zcash-winebuild:Kivy33x

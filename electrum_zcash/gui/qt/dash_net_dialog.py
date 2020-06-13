@@ -8,10 +8,10 @@ from PyQt5.QtWidgets import (QGridLayout, QDialog, QVBoxLayout, QCheckBox,
                              QTabWidget, QWidget, QLabel, QSpinBox, QLineEdit,
                              QTreeWidget, QTreeWidgetItem, QMenu, QHeaderView)
 
-from electrum_dash import constants
-from electrum_dash.dash_net import MIN_PEERS_LIMIT, MAX_PEERS_LIMIT
-from electrum_dash.i18n import _
-from electrum_dash.logging import get_logger
+from electrum_zcash import constants
+from electrum_zcash.dash_net import MIN_PEERS_LIMIT, MAX_PEERS_LIMIT
+from electrum_zcash.i18n import _
+from electrum_zcash.logging import get_logger
 
 from .util import Buttons, CloseButton
 
@@ -22,7 +22,7 @@ _logger = get_logger(__name__)
 MATCH_STR_CS = Qt.MatchFixedString | Qt.MatchCaseSensitive
 
 
-class DashPeersWidget(QTreeWidget):
+class ZcashPeersWidget(QTreeWidget):
     class Columns(IntEnum):
         PEER = 0
         UAGENT = 1
@@ -221,7 +221,7 @@ class BanlistWidget(QTreeWidget):
             self.addTopLevelItem(banlist_item)
 
 
-class DashNetDialogLayout(object):
+class ZcashNetDialogLayout(object):
 
     def __init__(self, network, config, parent):
         self.parent = parent
@@ -233,7 +233,7 @@ class DashNetDialogLayout(object):
         sporks_tab = QWidget()
         banlist_tab = QWidget()
         bls_speed_tab = QWidget()
-        tabs.addTab(dash_net_tab, _('Dash Network'))
+        tabs.addTab(dash_net_tab, _('Zcash Network'))
         tabs.addTab(sporks_tab, _('Sporks'))
         tabs.addTab(banlist_tab, _('Banlist'))
 
@@ -279,7 +279,7 @@ class DashNetDialogLayout(object):
                     self.timer.start()
             tabs.currentChanged.connect(on_tabs_current_changed)
 
-        # Dash Network tab
+        # Zcash Network tab
         grid = QGridLayout(dash_net_tab)
         grid.setSpacing(8)
         dash_net = self.network.dash_net
@@ -293,7 +293,7 @@ class DashNetDialogLayout(object):
         grid.addWidget(self.read_kb, 0, 2, 1, 2)
         grid.addWidget(self.write_kb, 0, 4, 1, 2)
 
-        self.run_dash_net_cb = QCheckBox(_('Enable Dash Network'))
+        self.run_dash_net_cb = QCheckBox(_('Enable Zcash Network'))
         self.run_dash_net_cb.setChecked(self.config.get('run_dash_net', True))
         run_dash_net_modifiable = self.config.is_modifiable('run_dash_net')
         self.run_dash_net_cb.setEnabled(run_dash_net_modifiable)
@@ -365,19 +365,19 @@ class DashNetDialogLayout(object):
         self.max_peers.valueChanged.connect(on_change_max_peers)
 
         # row 4
-        self.dash_peers_list = DashPeersWidget(self)
+        self.dash_peers_list = ZcashPeersWidget(self)
         grid.addWidget(self.dash_peers_list, 4, 0, 1, -1)
 
-        # Dash Sporks tab
+        # Zcash Sporks tab
         vbox = QVBoxLayout(sporks_tab)
-        sporks_label = QLabel(_('Dash Sporks Values'))
+        sporks_label = QLabel(_('Zcash Sporks Values'))
         self.sporks_list = SporksWidget(self)
         vbox.addWidget(sporks_label)
         vbox.addWidget(self.sporks_list)
 
-        # Dash Banlist tab
+        # Zcash Banlist tab
         vbox = QVBoxLayout(banlist_tab)
-        banlist_label = QLabel(_('Banned Dash Peers'))
+        banlist_label = QLabel(_('Banned Zcash Peers'))
         self.banlist_list = BanlistWidget(self)
         vbox.addWidget(banlist_label)
         vbox.addWidget(self.banlist_list)
@@ -424,14 +424,14 @@ class DashNetDialogLayout(object):
         return self.layout_
 
 
-class DashNetDialog(QDialog):
+class ZcashNetDialog(QDialog):
     def __init__(self, network, config, dash_net_sobj):
         QDialog.__init__(self)
-        self.setWindowTitle(_('Dash Network'))
+        self.setWindowTitle(_('Zcash Network'))
         self.setMinimumSize(700, 400)
         self.is_testnet = constants.net.TESTNET
         self.network = network
-        self.dnlayout = DashNetDialogLayout(network, config, self)
+        self.dnlayout = ZcashNetDialogLayout(network, config, self)
         self.dash_net_sobj = dash_net_sobj
         vbox = QVBoxLayout(self)
         vbox.addLayout(self.dnlayout.layout())
@@ -439,7 +439,7 @@ class DashNetDialog(QDialog):
         self.dash_net_sobj.dlg.connect(self.on_updated)
 
     def show(self):
-        super(DashNetDialog, self).show()
+        super(ZcashNetDialog, self).show()
         if self.network:
             self.network.dash_net.register_callback(self.on_dash_net,
                                                     ['dash-peers-updated',

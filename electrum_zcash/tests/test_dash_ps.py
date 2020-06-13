@@ -7,12 +7,12 @@ import tempfile
 import time
 from collections import defaultdict
 
-from electrum_dash import dash_ps
-from electrum_dash.bitcoin import TYPE_ADDRESS
-from electrum_dash.address_synchronizer import (TX_HEIGHT_LOCAL,
+from electrum_zcash import dash_ps
+from electrum_zcash.bitcoin import TYPE_ADDRESS
+from electrum_zcash.address_synchronizer import (TX_HEIGHT_LOCAL,
                                                 TX_HEIGHT_UNCONF_PARENT,
                                                 TX_HEIGHT_UNCONFIRMED)
-from electrum_dash.dash_ps import (COLLATERAL_VAL, PSPossibleDoubleSpendError,
+from electrum_zcash.dash_ps import (COLLATERAL_VAL, PSPossibleDoubleSpendError,
                                    CREATE_COLLATERAL_VAL, to_duffs, PSTxData,
                                    PSTxWorkflow, PSDenominateWorkflow,
                                    PSMinRoundsCheckFailed, PS_DENOMS_VALS,
@@ -21,13 +21,13 @@ from electrum_dash.dash_ps import (COLLATERAL_VAL, PSPossibleDoubleSpendError,
                                    KP_PS_CHANGE, PSStates, calc_tx_size,
                                    calc_tx_fee, FILTERED_TXID, FILTERED_ADDR,
                                    CREATE_COLLATERAL_VALS, MIN_DENOM_VAL)
-from electrum_dash.dash_tx import PSTxTypes, PSCoinRounds, SPEC_TX_NAMES
-from electrum_dash.keystore import xpubkey_to_address
-from electrum_dash.simple_config import SimpleConfig
-from electrum_dash.storage import WalletStorage
-from electrum_dash.transaction import TxOutput, Transaction
-from electrum_dash.util import Satoshis, NotEnoughFunds, TxMinedInfo, bh2u
-from electrum_dash.wallet import Wallet
+from electrum_zcash.dash_tx import PSTxTypes, PSCoinRounds, SPEC_TX_NAMES
+from electrum_zcash.keystore import xpubkey_to_address
+from electrum_zcash.simple_config import SimpleConfig
+from electrum_zcash.storage import WalletStorage
+from electrum_zcash.transaction import TxOutput, Transaction
+from electrum_zcash.util import Satoshis, NotEnoughFunds, TxMinedInfo, bh2u
+from electrum_zcash.wallet import Wallet
 
 from . import TestCaseForTestnet
 

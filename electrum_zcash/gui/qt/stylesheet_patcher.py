@@ -14,7 +14,7 @@ def patch_qt_stylesheet(use_dark_theme: bool) -> None:
     style_sheet = app.styleSheet()
     style_sheet = style_sheet + '''
     /* PayToEdit text was being clipped */
-    /* Fixed in Dash Electrum code/styles
+    /* Fixed in Electrum-Zcash code/styles
     QAbstractScrollArea {
         padding: 0px;
     }*/

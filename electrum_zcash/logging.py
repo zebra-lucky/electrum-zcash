@@ -40,14 +40,14 @@ class LogFormatterForConsole(logging.Formatter):
         return text
 
 
-# try to make console log lines short... no timestamp, short levelname, no "electrum_dash."
+# try to make console log lines short... no timestamp, short levelname, no "electrum_zcash."
 console_formatter = LogFormatterForConsole(fmt="%(levelname).1s | %(name)s | %(message)s")
 
 
 def _shorten_name_of_logrecord(record: logging.LogRecord) -> logging.LogRecord:
     record = copy.copy(record)  # avoid mutating arg
     # strip the main module name from the logger name
-    if record.name.startswith("electrum_dash."):
+    if record.name.startswith("electrum_zcash."):
         record.name = record.name[14:]
     # manual map to shorten common module names
     record.name = record.name.replace("interface.Interface", "interface", 1)
@@ -68,13 +68,13 @@ console_stderr_handler.setFormatter(console_formatter)
 console_stderr_handler.setLevel(logging.WARNING)
 root_logger.addHandler(console_stderr_handler)
 
-# creates a logger specifically for electrum_dash library
-electrum_logger = logging.getLogger("electrum_dash")
+# creates a logger specifically for electrum_zcash library
+electrum_logger = logging.getLogger("electrum_zcash")
 electrum_logger.setLevel(logging.DEBUG)
 
 
 def _delete_old_logs(path, keep=10):
-    files = sorted(list(pathlib.Path(path).glob("electrum_dash_log_*.log")), reverse=True)
+    files = sorted(list(pathlib.Path(path).glob("electrum_zcash_log_*.log")), reverse=True)
     for f in files[keep:]:
         os.remove(str(f))
 
@@ -89,7 +89,7 @@ def _configure_file_logging(log_directory: pathlib.Path):
 
     timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
     PID = os.getpid()
-    _logfile_path = log_directory / f"electrum_dash_log_{timestamp}_{PID}.log"
+    _logfile_path = log_directory / f"electrum_zcash_log_{timestamp}_{PID}.log"
 
     file_handler = logging.FileHandler(_logfile_path)
     file_handler.setFormatter(file_formatter)
@@ -188,7 +188,7 @@ class ShortcutFilteringFilter(logging.Filter):
 # --- External API
 
 def get_logger(name: str) -> logging.Logger:
-    if name.startswith("electrum_dash."):
+    if name.startswith("electrum_zcash."):
         name = name[14:]
     return electrum_logger.getChild(name)
 
@@ -244,8 +244,8 @@ def configure_logging(config):
 
     from . import ELECTRUM_VERSION
     from .constants import GIT_REPO_URL
-    _logger.info(f"Dash Electrum version: {ELECTRUM_VERSION} - "
-                 f"https://electrum.dash.org - {GIT_REPO_URL}")
+    _logger.info(f"Electrum-Zcash version: {ELECTRUM_VERSION} - "
+                 f"https://electrum.zcash.org - {GIT_REPO_URL}")
     _logger.info(f"Python version: {sys.version}. On platform: {describe_os_version()}")
     _logger.info(f"Logging to file: {str(_logfile_path)}")
     _logger.info(f"Log filters: verbosity {repr(verbosity)}, verbosity_shortcuts {repr(verbosity_shortcuts)}")

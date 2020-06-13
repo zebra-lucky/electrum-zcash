@@ -23,10 +23,10 @@ from PyQt5.QtWidgets import (QPushButton, QLabel, QMessageBox, QHBoxLayout,
                              QFileDialog, QWidget, QToolButton, QTreeView, QPlainTextEdit,
                              QHeaderView, QApplication, QToolTip, QTreeWidget, QStyledItemDelegate)
 
-from electrum_dash.i18n import _, languages
-from electrum_dash.util import (FileImportFailed, FileExportFailed,
+from electrum_zcash.i18n import _, languages
+from electrum_zcash.util import (FileImportFailed, FileExportFailed,
                            resource_path)
-from electrum_dash.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
+from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
 
 if TYPE_CHECKING:
     from .main_window import ElectrumWindow

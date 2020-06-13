@@ -24,11 +24,10 @@
 # SOFTWARE.
 from collections import defaultdict
 from math import floor, log10
-from typing import NamedTuple, List, Callable, Optional
+from typing import NamedTuple, List, Callable
 from decimal import Decimal
 
 from .bitcoin import sha256, COIN, TYPE_ADDRESS, is_address
-from .dash_ps import PS_DENOMS_VALS
 from .transaction import Transaction, TxOutput
 from .util import NotEnoughFunds
 from .logging import Logger
@@ -79,7 +78,6 @@ class Bucket(NamedTuple):
     effective_value: int   # estimate of value left after subtracting fees. in satoshis
     coins: List[dict]   # UTXOs
     min_height: int     # min block height where a coin was confirmed
-    max_rounds: Optional[int]  # bucket has coins with ps_rounds <= max_rounds
 
 
 class ScoredCandidate(NamedTuple):
@@ -125,7 +123,6 @@ class CoinChooserBase(Logger):
             weight = 0
             value = 0
             min_height = None
-            max_rounds = None
             for coin in coins:
                 weight += Transaction.estimated_input_weight(coin)
                 value += coin['value']
@@ -133,16 +130,6 @@ class CoinChooserBase(Logger):
                     min_height = coin['height']
                 else:
                     min_height = min(coin['height'], min_height)
-                ps_rounds = coin['ps_rounds']
-                if ps_rounds is not None:
-                    if max_rounds is None:
-                        max_rounds = 0
-                    if ps_rounds >= 0:  # denoms
-                        max_rounds = max(max_rounds, ps_rounds)
-                    else:
-                        # do not spend ps_collateral/ps_other if possible
-                        # and therefore set max_rounds to maximum
-                        max_rounds = 1e9
             # the fee estimator is typically either a constant or a linear function,
             # so the "function:" effective_value(bucket) will be homomorphic for addition
             # i.e. effective_value(b1) + effective_value(b2) = effective_value(b1 + b2)
@@ -158,8 +145,7 @@ class CoinChooserBase(Logger):
                           value=value,
                           effective_value=effective_value,
                           coins=coins,
-                          min_height=min_height,
-                          max_rounds=max_rounds)
+                          min_height=min_height)
 
         return list(map(make_Bucket, buckets.keys(), buckets.values()))
 
@@ -233,11 +219,9 @@ class CoinChooserBase(Logger):
         return change
 
     def _construct_tx_from_selected_buckets(self, *, buckets, base_tx, change_addrs,
-                                            fee_estimator_w, dust_threshold, base_weight,
-                                            tx_type=0, extra_payload=b''):
+                                            fee_estimator_w, dust_threshold, base_weight):
         # make a copy of base_tx so it won't get mutated
-        tx = Transaction.from_io(base_tx.inputs()[:], base_tx.outputs()[:],
-                                 tx_type=tx_type, extra_payload=extra_payload)
+        tx = Transaction.from_io(base_tx.inputs()[:], base_tx.outputs()[:])
 
         tx.add_inputs([coin for b in buckets for coin in b.coins])
         tx_weight = self._get_tx_weight(buckets, base_weight=base_weight)
@@ -286,9 +270,7 @@ class CoinChooserBase(Logger):
         self.p = PRNG(''.join(sorted(utxos)))
 
         # Copy the outputs so when adding change we don't modify "outputs"
-        base_tx = Transaction.from_io(inputs[:], outputs[:],
-                                      tx_type=tx_type,
-                                      extra_payload=extra_payload)
+        base_tx = Transaction.from_io(inputs[:], outputs[:])
         input_value = base_tx.input_value()
 
         # Weight of the transaction with no inputs and no change
@@ -320,9 +302,7 @@ class CoinChooserBase(Logger):
                                                             change_addrs=change_addrs,
                                                             fee_estimator_w=fee_estimator_w,
                                                             dust_threshold=dust_threshold,
-                                                            base_weight=base_weight,
-                                                            tx_type=tx_type,
-                                                            extra_payload=extra_payload)
+                                                            base_weight=base_weight)
 
         # Collect the coins into buckets
         all_buckets = self.bucketize_coins(coins, fee_estimator_vb=fee_estimator_vb)
@@ -395,28 +375,11 @@ class CoinChooserRandom(CoinChooserBase):
         are not enough, tries to use the next type but while also selecting
         all buckets of all previous types.
         """
-        conf_buckets = []
-        unconf_buckets = []
-        other_buckets = []
-        ps_conf_buckets = []
-        ps_unconf_buckets = []
-        ps_other_buckets = []
-        for bkt in buckets:
-            if bkt.min_height > 0 and bkt.max_rounds is None:
-                conf_buckets.append(bkt)
-            elif bkt.min_height == 0 and bkt.max_rounds is None:
-                unconf_buckets.append(bkt)
-            elif bkt.min_height < 0 and bkt.max_rounds is None:
-                other_buckets.append(bkt)
-            elif bkt.min_height > 0 and bkt.max_rounds is not None:
-                ps_conf_buckets.append(bkt)
-            elif bkt.min_height == 0 and bkt.max_rounds is not None:
-                ps_unconf_buckets.append(bkt)
-            elif bkt.min_height < 0 and bkt.max_rounds is not None:
-                ps_other_buckets.append(bkt)
+        conf_buckets = [bkt for bkt in buckets if bkt.min_height > 0]
+        unconf_buckets = [bkt for bkt in buckets if bkt.min_height == 0]
+        other_buckets = [bkt for bkt in buckets if bkt.min_height < 0]
 
-        bucket_sets = [conf_buckets, unconf_buckets, other_buckets,
-                       ps_conf_buckets, ps_unconf_buckets, ps_other_buckets]
+        bucket_sets = [conf_buckets, unconf_buckets, other_buckets]
         already_selected_buckets = []
         already_selected_buckets_value_sum = 0
 
@@ -483,114 +446,9 @@ class CoinChooserPrivacy(CoinChooserRandom):
                 badness += (change - max_change) / (max_change + 10000)
                 # Penalize large change; 5 BTC excess ~= using 1 more input
                 badness += change / (COIN * 5)
-            # Penalize using high max_rounds buckets
-            max_rounds_badness = 0
-            for b in buckets:
-                max_rounds = b.max_rounds
-                if max_rounds is not None and max_rounds > 0:
-                    max_rounds_badness = max(max_rounds_badness,
-                                             max_rounds*1000)
-            badness += max_rounds_badness
             return ScoredCandidate(badness, tx, buckets)
 
         return penalty
-
-
-class CoinChooserPrivateSend:
-
-    def make_tx(self, coins, outputs, fee_estimator_vb,
-                min_rounds, tx_type=0, extra_payload=b''):
-        base_tx = Transaction.from_io([], outputs[:], tx_type=tx_type,
-                                      extra_payload=extra_payload)
-        all_coins = list(filter(lambda x: x['ps_rounds'] is not None
-                                and x['ps_rounds'] >= min_rounds
-                                and x['value'] in PS_DENOMS_VALS, coins))
-        if not all_coins:
-            raise NotEnoughFunds()
-        max_rounds = max([c['ps_rounds'] for c in all_coins])
-        tx = None
-        use_repeated_txids = False
-        use_ps_rounds = min_rounds
-        while not (use_repeated_txids and use_ps_rounds > max_rounds):
-            coins = self.select_coins(all_coins, use_ps_rounds,
-                                      use_repeated_txids)
-            tx = self.select_candidate_tx(coins, base_tx, fee_estimator_vb,
-                                          use_repeated_txids)
-            if tx:
-                break
-            if use_ps_rounds <= max_rounds:
-                use_ps_rounds += 1
-            if use_ps_rounds > max_rounds and not use_repeated_txids:
-                use_repeated_txids = True
-                use_ps_rounds = min_rounds
-
-        if not tx:
-            raise NotEnoughFunds()
-        else:
-            return tx
-
-    def select_coins(self, coins, max_rounds, use_repeated_txids):
-        coins = list(filter(lambda x: x['ps_rounds'] <= max_rounds, coins))
-        if use_repeated_txids:
-            return coins
-        selected = []
-        used_txids = []
-        for c in coins:
-            txid = c['prevout_hash']
-            if txid in used_txids:
-                continue
-            selected.append(c)
-            used_txids.append(txid)
-        return selected
-
-    def select_candidate_tx(self, coins, base_tx, fee_estimator_vb,
-                            use_repeated_txids):
-        spent_amount = base_tx.output_value()
-        selected = []
-        if sum([c['value'] for c in coins]) < spent_amount:
-            return
-        coins = sorted(coins, key=lambda x: x['value'], reverse=True)
-        skip_value = 0
-        tx = backup_tx = None
-        for c in coins:
-            if c['value'] == skip_value:
-                continue
-            tx = Transaction.from_io(base_tx.inputs()[:],
-                                     base_tx.outputs()[:],
-                                     tx_type=base_tx.tx_type,
-                                     extra_payload=base_tx.extra_payload)
-            tx.add_inputs(selected + [c])
-            input_value = tx.input_value()
-            estimated_fee = fee_estimator_vb(tx.estimated_size())
-            fee = input_value - spent_amount
-            if fee < estimated_fee:
-                selected.append(c)
-                continue
-            elif fee - estimated_fee >= PS_DENOMS_VALS[0]:
-                skip_value = c['value']
-                backup_tx = tx
-                tx = Transaction.from_io(base_tx.inputs()[:],
-                                         base_tx.outputs()[:],
-                                         tx_type=base_tx.tx_type,
-                                         extra_payload=base_tx.extra_payload)
-                tx.add_inputs(selected)
-                input_value = tx.input_value()
-                estimated_fee = fee_estimator_vb(tx.estimated_size())
-                fee = input_value - spent_amount
-                continue
-            else:
-                break
-            selected.append(c)
-
-        fee_overhead = fee - estimated_fee
-        if tx and fee >= estimated_fee and fee_overhead <= PS_DENOMS_VALS[0]:
-            return tx
-        elif use_repeated_txids and backup_tx:
-            fee = backup_tx.input_value() - spent_amount
-            estimated_fee = fee_estimator_vb(backup_tx.estimated_size())
-            fee_overhead = fee - estimated_fee
-            if fee_overhead <= PS_DENOMS_VALS[0]:
-                return backup_tx
 
 
 COIN_CHOOSERS = {
@@ -608,7 +466,3 @@ def get_coin_chooser(config):
     coinchooser = klass()
     coinchooser.enable_output_value_rounding = config.get('coin_chooser_output_rounding', False)
     return coinchooser
-
-
-def get_coin_chooser_privatesend():
-    return CoinChooserPrivateSend()

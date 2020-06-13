@@ -24,20 +24,20 @@ from kivy.lang import Builder
 from kivy.factory import Factory
 from kivy.utils import platform
 
-from electrum_dash.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds, Fiat
-from electrum_dash import bitcoin
-from electrum_dash.dash_tx import PSTxTypes, SPEC_TX_NAMES
-from electrum_dash.transaction import TxOutput, Transaction, tx_from_str
-from electrum_dash.util import send_exception_to_crash_reporter, parse_URI, InvalidBitcoinURI
-from electrum_dash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
-from electrum_dash.plugin import run_hook
-from electrum_dash.wallet import InternalAddressCorruption
-from electrum_dash import simple_config
+from electrum_zcash.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds, Fiat
+from electrum_zcash import bitcoin
+from electrum_zcash.dash_tx import PSTxTypes, SPEC_TX_NAMES
+from electrum_zcash.transaction import TxOutput, Transaction, tx_from_str
+from electrum_zcash.util import send_exception_to_crash_reporter, parse_URI, InvalidBitcoinURI
+from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum_zcash.plugin import run_hook
+from electrum_zcash.wallet import InternalAddressCorruption
+from electrum_zcash import simple_config
 
 from .context_menu import ContextMenu
 
 
-from electrum_dash.gui.kivy.i18n import _
+from electrum_zcash.gui.kivy.i18n import _
 
 
 class HistoryItem(RecycleDataViewBehavior, BoxLayout):
@@ -100,7 +100,7 @@ class CScreen(Factory.Screen):
 
     @profiler
     def load_screen(self):
-        self.screen = Builder.load_file('electrum_dash/gui/kivy/uix/ui_screens/' + self.kvname + '.kv')
+        self.screen = Builder.load_file('electrum_zcash/gui/kivy/uix/ui_screens/' + self.kvname + '.kv')
         self.add_widget(self.screen)
         self.loaded = True
         self.update()
@@ -177,7 +177,7 @@ class HistoryScreen(CScreen):
     def __init__(self, **kwargs):
         self.ra_dialog = None
         super(HistoryScreen, self).__init__(**kwargs)
-        atlas_path = 'atlas://electrum_dash/gui/kivy/theming/light/'
+        atlas_path = 'atlas://electrum_zcash/gui/kivy/theming/light/'
         self.atlas_path = atlas_path
         self.group_icn_empty = atlas_path + 'kv_tx_group_empty'
         self.group_icn_head = atlas_path + 'kv_tx_group_head'
@@ -413,7 +413,7 @@ class SendScreen(CScreen):
             # it should be already saved
             return
         # save address as invoice
-        from electrum_dash.paymentrequest import make_unsigned_request, PaymentRequest
+        from electrum_zcash.paymentrequest import make_unsigned_request, PaymentRequest
         req = {'address':self.screen.address, 'memo':self.screen.message}
         amount = self.app.get_amount(self.screen.amount) if self.screen.amount else 0
         req['amount'] = amount
@@ -455,10 +455,10 @@ class SendScreen(CScreen):
         else:
             address = str(self.screen.address)
             if not address:
-                self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a Dash address or a payment request'))
+                self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a Zcash address or a payment request'))
                 return
             if not bitcoin.is_address(address):
-                self.app.show_error(_('Invalid Dash Address') + ':\n' + address)
+                self.app.show_error(_('Invalid Zcash Address') + ':\n' + address)
                 return
             try:
                 amount = self.app.get_amount(self.screen.amount)
@@ -636,7 +636,7 @@ class ReceiveScreen(CScreen):
         Clock.schedule_once(lambda dt: self.update_qr())
 
     def get_URI(self):
-        from electrum_dash.util import create_bip21_uri
+        from electrum_zcash.util import create_bip21_uri
         amount = self.screen.amount
         addr = self.screen.address
         if (self.app.wallet.is_used(addr)
@@ -660,7 +660,7 @@ class ReceiveScreen(CScreen):
     def do_share(self):
         uri = self.get_URI()
         if uri:
-            self.app.do_share(uri, _("Share Dash Request"))
+            self.app.do_share(uri, _("Share Zcash Request"))
 
     def do_copy(self):
         uri = self.get_URI()
@@ -697,7 +697,7 @@ class ReceiveScreen(CScreen):
     def do_new(self):
         is_unused = self.get_new_address()
         if not is_unused:
-            from electrum_dash.gui.kivy.uix.dialogs.question import Question
+            from electrum_zcash.gui.kivy.uix.dialogs.question import Question
             q = _('Warning: The next address will not be recovered'
                   ' automatically if you restore your wallet from seed;'
                   ' you may need to add it manually.\n\nThis occurs because'

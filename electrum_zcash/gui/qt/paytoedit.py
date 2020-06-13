@@ -29,11 +29,11 @@ from decimal import Decimal
 from PyQt5.QtGui import QFontMetrics
 from PyQt5.QtWidgets import QLineEdit
 
-from electrum_dash import bitcoin
-from electrum_dash.util import bfh
-from electrum_dash.transaction import TxOutput, push_script
-from electrum_dash.bitcoin import opcodes
-from electrum_dash.logging import Logger
+from electrum_zcash import bitcoin
+from electrum_zcash.util import bfh
+from electrum_zcash.transaction import TxOutput, push_script
+from electrum_zcash.bitcoin import opcodes
+from electrum_zcash.logging import Logger
 
 from .qrtextedit import ScanQRTextEdit
 from .completion_text_edit import CompletionTextEdit

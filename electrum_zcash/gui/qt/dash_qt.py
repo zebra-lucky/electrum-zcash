@@ -4,7 +4,7 @@ from PyQt5.QtCore import QRect, QPoint, QSize
 from PyQt5.QtWidgets import (QTabBar, QTextEdit, QStylePainter,
                              QStyleOptionTab, QStyle)
 
-from electrum_dash.dash_tx import SPEC_TX_NAMES
+from electrum_zcash.dash_tx import SPEC_TX_NAMES
 
 
 class ExtraPayloadWidget(QTextEdit):

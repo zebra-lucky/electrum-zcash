@@ -1,14 +1,14 @@
 import os
 
-from electrum_dash.simple_config import SimpleConfig
-from electrum_dash import constants
-from electrum_dash.daemon import Daemon
-from electrum_dash.storage import WalletStorage
-from electrum_dash.wallet import Wallet, create_new_wallet
-from electrum_dash.commands import Commands
+from electrum_zcash.simple_config import SimpleConfig
+from electrum_zcash import constants
+from electrum_zcash.daemon import Daemon
+from electrum_zcash.storage import WalletStorage
+from electrum_zcash.wallet import Wallet, create_new_wallet
+from electrum_zcash.commands import Commands
 
 
-config = SimpleConfig({"testnet": True})  # to use ~/.electrum-dash/testnet as datadir
+config = SimpleConfig({"testnet": True})  # to use ~/.electrum-zcash/testnet as datadir
 constants.set_testnet()  # to set testnet magic bytes
 daemon = Daemon(config, listen_jsonrpc=False)
 network = daemon.network

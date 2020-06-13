@@ -6,7 +6,7 @@ PROJECT_ROOT="$(dirname "$(readlink -e "$0")")/../../.."
 CONTRIB="$PROJECT_ROOT/contrib"
 DISTDIR="$PROJECT_ROOT/dist"
 BUILDDIR="/var/build/appimage"
-APPDIR="$BUILDDIR/electrum-dash.AppDir"
+APPDIR="$BUILDDIR/electrum-zcash.AppDir"
 CACHEDIR="$BUILDDIR/.cache/appimage"
 
 # pinned versions
@@ -16,10 +16,10 @@ LIBSECP_VERSION="b408c6a8b287003d1ade5709e6f7bc3c7f1d5be7"
 SQUASHFSKIT_COMMIT="ae0d656efa2d0df2fcac795b6823b44462f19386"
 
 pushd $PROJECT_ROOT
-source $CONTRIB/dash/travis/electrum_dash_version_env.sh
+source $CONTRIB/zcash/travis/electrum_zcash_version_env.sh
 popd
-VERSION=$DASH_ELECTRUM_VERSION
-APPIMAGE="$DISTDIR/Dash-Electrum-$VERSION-x86_64.AppImage"
+VERSION=$ELECTRUM_ZCASH_VERSION
+APPIMAGE="$DISTDIR/Electrum-Zcash-$VERSION-x86_64.AppImage"
 
 mkdir -p "$APPDIR" "$CACHEDIR" "$DISTDIR"
 
@@ -57,7 +57,7 @@ info "installing pip."
 "$python" -m ensurepip
 
 
-info "installing electrum-dash and its dependencies."
+info "installing electrum-zcash and its dependencies."
 mkdir -p "$CACHEDIR/pip_cache"
 "$python" -m pip install --no-warn-script-location --cache-dir "$CACHEDIR/pip_cache" -r "$CONTRIB/deterministic-build/requirements.txt"
 "$python" -m pip install --no-warn-script-location --cache-dir "$CACHEDIR/pip_cache" -r "$CONTRIB/deterministic-build/requirements-binaries.txt"
@@ -70,12 +70,12 @@ cp "/usr/lib/libzbar.so.0" "$APPDIR/usr/lib/libzbar.so.0"
 
 
 info "desktop integration."
-cp "$PROJECT_ROOT/electrum-dash.desktop" "$APPDIR/electrum-dash.desktop"
-cp "$PROJECT_ROOT/electrum_dash/gui/icons/electrum-dash.png" "$APPDIR/electrum-dash.png"
+cp "$PROJECT_ROOT/electrum-zcash.desktop" "$APPDIR/electrum-zcash.desktop"
+cp "$PROJECT_ROOT/electrum_zcash/gui/icons/electrum-zcash.png" "$APPDIR/electrum-zcash.png"
 
 
 # add launcher
-cp "$CONTRIB/dash/travis/apprun.sh" "$APPDIR/AppRun"
+cp "$CONTRIB/zcash/travis/apprun.sh" "$APPDIR/AppRun"
 
 info "finalizing AppDir."
 (

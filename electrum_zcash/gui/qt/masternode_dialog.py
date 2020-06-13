@@ -13,13 +13,13 @@ from PyQt5.QtWidgets import (QWidget, QTableView, QHeaderView,
                              QPushButton, QLineEdit, QHBoxLayout,
                              QFileDialog)
 
-from electrum_dash import bitcoin
-from electrum_dash.i18n import _
-from electrum_dash.masternode import MasternodeAnnounce
-from electrum_dash.masternode_manager import parse_masternode_conf
-from electrum_dash.protx_list import MNList
-from electrum_dash.util import bfh
-from electrum_dash.logging import Logger
+from electrum_zcash import bitcoin
+from electrum_zcash.i18n import _
+from electrum_zcash.masternode import MasternodeAnnounce
+from electrum_zcash.masternode_manager import parse_masternode_conf
+from electrum_zcash.protx_list import MNList
+from electrum_zcash.util import bfh
+from electrum_zcash.logging import Logger
 
 from .masternode_widgets import (SignAnnounceWidget, masternode_status,
                                  MasternodeEditor, MasternodeOutputsTab)

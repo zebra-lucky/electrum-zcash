@@ -5,8 +5,8 @@
 import time
 import asyncio
 
-from electrum_dash.network import Network
-from electrum_dash.util import print_msg, json_encode, create_and_start_event_loop, log_exceptions
+from electrum_zcash.network import Network
+from electrum_zcash.util import print_msg, json_encode, create_and_start_event_loop, log_exceptions
 
 # start network
 loop, stopping_fut, loop_thread = create_and_start_event_loop()

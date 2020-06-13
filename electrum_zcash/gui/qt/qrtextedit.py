@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QFileDialog
 
-from electrum_dash.i18n import _
-from electrum_dash.plugin import run_hook
+from electrum_zcash.i18n import _
+from electrum_zcash.plugin import run_hook
 
 from .util import ButtonsTextEdit, MessageBoxMixin, ColorScheme
 
@@ -54,7 +54,7 @@ class ScanQRTextEdit(ButtonsTextEdit, MessageBoxMixin):
             self.setText(data)
 
     def qr_input(self):
-        from electrum_dash import qrscanner, get_config
+        from electrum_zcash import qrscanner, get_config
         try:
             data = qrscanner.scan_barcode(get_config().get_video_device())
         except BaseException as e:

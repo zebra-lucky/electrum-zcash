@@ -28,9 +28,9 @@ from PyQt5.QtGui import QPixmap, QPalette
 from PyQt5.QtWidgets import (QVBoxLayout, QCheckBox, QHBoxLayout, QLineEdit,
                              QLabel, QCompleter, QDialog, QStyledItemDelegate)
 
-from electrum_dash.i18n import _
-from electrum_dash.mnemonic import Mnemonic, seed_type
-import electrum_dash.old_mnemonic
+from electrum_zcash.i18n import _
+from electrum_zcash.mnemonic import Mnemonic, seed_type
+import electrum_zcash.old_mnemonic
 
 from .util import (Buttons, OkButton, WWLabel, ButtonsTextEdit, icon_path,
                    EnterButton, CloseButton, WindowModalDialog, ColorScheme)
@@ -71,10 +71,10 @@ class SeedLayout(QVBoxLayout):
                 if b:
                     msg = ' '.join([
                         '<b>' + _('Warning') + ':</b>  ',
-                        _('BIP39 seeds can be imported in Dash Electrum, so that users can access funds locked in other wallets.'),
+                        _('BIP39 seeds can be imported in Electrum-Zcash, so that users can access funds locked in other wallets.'),
                         _('However, we do not generate BIP39 seeds, because they do not meet our safety standard.'),
                         _('BIP39 seeds do not include a version number, which compromises compatibility with future software.'),
-                        _('We do not guarantee that BIP39 imports will always be supported in Dash Electrum.'),
+                        _('We do not guarantee that BIP39 imports will always be supported in Electrum-Zcash.'),
                     ])
                 else:
                     msg = ''
@@ -150,7 +150,7 @@ class SeedLayout(QVBoxLayout):
 
     def initialize_completer(self):
         bip39_english_list = Mnemonic('en').wordlist
-        old_list = electrum_dash.old_mnemonic.words
+        old_list = electrum_zcash.old_mnemonic.words
         only_old_list = set(old_list) - set(bip39_english_list)
         self.wordlist = bip39_english_list + list(only_old_list)  # concat both lists
         self.wordlist.sort()
@@ -182,7 +182,7 @@ class SeedLayout(QVBoxLayout):
             t = seed_type(s)
             label = _('Seed Type') + ': ' + t if t else ''
         else:
-            from electrum_dash.keystore import bip39_is_checksum_valid
+            from electrum_zcash.keystore import bip39_is_checksum_valid
             is_checksum, is_wordlist = bip39_is_checksum_valid(s)
             status = ('checksum: ' + ('ok' if is_checksum else 'failed')) if is_wordlist else 'unknown wordlist'
             label = 'BIP39' + ' (%s)'%status
@@ -226,7 +226,7 @@ class KeysLayout(QVBoxLayout):
 class SeedDialog(WindowModalDialog):
 
     def __init__(self, parent, seed, passphrase):
-        WindowModalDialog.__init__(self, parent, ('Dash Electrum - ' + _('Seed')))
+        WindowModalDialog.__init__(self, parent, ('Electrum-Zcash - ' + _('Seed')))
         self.setMinimumWidth(400)
         vbox = QVBoxLayout(self)
         title =  _("Your wallet generation seed is:")

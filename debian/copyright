@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: electrum-dash
-Source: https://github.com/akhavr/electrum-dash/
+Upstream-Name: electrum-zcash
+Source: https://github.com/akhavr/electrum-zcash/
 
 Files: *
 Copyright: Electrum Team
@@ -9,11 +9,11 @@ Comment:
  Various authors are described in the AUTHORS file, including parts on
  which they worked and hold license.
 
-Files: electrum_dash/*
+Files: electrum_zcash/*
 Copyright: 2011-2018 Thomas Voegtlin
 License: Expat
 
-Files: electrum_dash/plugins/*
+Files: electrum_zcash/plugins/*
 Copyright: 2014-2018 Thomas Voegtlin
 License: Expat
 

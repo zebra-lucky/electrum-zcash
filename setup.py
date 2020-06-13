@@ -17,7 +17,7 @@ _min_python_version_tuple = tuple(map(int, (MIN_PYTHON_VERSION.split("."))))
 
 
 if sys.version_info[:3] < _min_python_version_tuple:
-    sys.exit("Error: Dash Electrum requires Python version >= %s..." % MIN_PYTHON_VERSION)
+    sys.exit("Error: Electrum-Zcash requires Python version >= %s..." % MIN_PYTHON_VERSION)
 
 with open('contrib/requirements/requirements.txt') as f:
     requirements = f.read().splitlines()
@@ -26,7 +26,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
     requirements_hw = f.read().splitlines()
 
 # load version.py; needlessly complicated alternative to "imp.load_source":
-version_spec = importlib.util.spec_from_file_location('version', 'electrum_dash/version.py')
+version_spec = importlib.util.spec_from_file_location('version', 'electrum_zcash/version.py')
 version_module = version = importlib.util.module_from_spec(version_spec)
 version_spec.loader.exec_module(version_module)
 
@@ -46,8 +46,8 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum-dash.desktop']),
-        (os.path.join(usr_share, icons_dirname), ['electrum_dash/gui/icons/electrum-dash.png']),
+        (os.path.join(usr_share, 'applications/'), ['electrum-zcash.desktop']),
+        (os.path.join(usr_share, icons_dirname), ['electrum_zcash/gui/icons/electrum-zcash.png']),
     ]
 
 extras_require = {
@@ -59,39 +59,39 @@ extras_require['full'] = [pkg for sublist in list(extras_require.values()) for p
 
 
 setup(
-    name="Dash-Electrum",
+    name="Electrum-Zcash",
     version=version.ELECTRUM_VERSION,
     python_requires='>={}'.format(MIN_PYTHON_VERSION),
     install_requires=requirements,
     extras_require=extras_require,
     packages=[
-        'electrum_dash',
-        'electrum_dash.gui',
-        'electrum_dash.gui.qt',
-        'electrum_dash.plugins',
-    ] + [('electrum_dash.plugins.'+pkg) for pkg in find_packages('electrum_dash/plugins')],
+        'electrum_zcash',
+        'electrum_zcash.gui',
+        'electrum_zcash.gui.qt',
+        'electrum_zcash.plugins',
+    ] + [('electrum_zcash.plugins.'+pkg) for pkg in find_packages('electrum_zcash/plugins')],
     package_dir={
-        'electrum_dash': 'electrum_dash'
+        'electrum_zcash': 'electrum_zcash'
     },
     package_data={
         '': ['*.txt', '*.json', '*.ttf', '*.otf'],
-        'electrum_dash': [
+        'electrum_zcash': [
             'checkpoints*.gz',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ],
-        'electrum_dash.gui': [
+        'electrum_zcash.gui': [
             'icons/*.*',
             'icons/radio/*.*',
             'icons/checkbox/*.*',
         ],
     },
-    scripts=['electrum_dash/electrum-dash'],
+    scripts=['electrum_zcash/electrum-zcash'],
     data_files=data_files,
-    description="Lightweight Dashpay Wallet",
+    description="Lightweight Zcashpay Wallet",
     maintainer="akhavr",
     maintainer_email="akhavr@khavr.com",
     license="MIT License",
-    url="https://electrum.dash.org",
-    long_description="""Lightweight Dashpay Wallet""",
+    url="https://electrum.zcash.org",
+    long_description="""Lightweight Zcashpay Wallet""",
 )

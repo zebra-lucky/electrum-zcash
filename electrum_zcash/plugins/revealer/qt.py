@@ -24,13 +24,13 @@ from PyQt5.QtGui import (QPixmap, QImage, QBitmap, QPainter, QFontDatabase, QPen
 from PyQt5.QtWidgets import (QGridLayout, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QLineEdit)
 
-from electrum_dash.plugin import hook
-from electrum_dash.i18n import _
-from electrum_dash.util import make_dir, InvalidPassword, UserCancelled
-from electrum_dash.gui.qt.util import (read_QIcon, EnterButton, WWLabel, icon_path,
+from electrum_zcash.plugin import hook
+from electrum_zcash.i18n import _
+from electrum_zcash.util import make_dir, InvalidPassword, UserCancelled
+from electrum_zcash.gui.qt.util import (read_QIcon, EnterButton, WWLabel, icon_path,
                                        WindowModalDialog, Buttons, CloseButton, OkButton)
-from electrum_dash.gui.qt.qrtextedit import ScanQRTextEdit
-from electrum_dash.gui.qt.main_window import StatusBarButton
+from electrum_zcash.gui.qt.qrtextedit import ScanQRTextEdit
+from electrum_zcash.gui.qt.main_window import StatusBarButton
 
 from .revealer import RevealerPlugin
 
@@ -73,7 +73,7 @@ class Plugin(RevealerPlugin):
         return EnterButton(_('Printer Calibration'), partial(self.calibration_dialog, window))
 
     def password_dialog(self, msg=None, parent=None):
-        from electrum_dash.gui.qt.password_dialog import PasswordDialog
+        from electrum_zcash.gui.qt.password_dialog import PasswordDialog
         parent = parent or self
         d = PasswordDialog(parent, msg)
         return d.run()
@@ -550,7 +550,7 @@ class Plugin(RevealerPlugin):
 
         if not calibration_sheet:
             if is_cseed: #its a secret
-                painter.setPen(QPen(Qt.black, 1, Qt.DashDotDotLine))
+                painter.setPen(QPen(Qt.black, 1, Qt.ZcashDotDotLine))
                 painter.drawLine(0, dist_v, base_img.width(), dist_v)
                 painter.drawLine(dist_h, 0,  dist_h, base_img.height())
                 painter.drawLine(0, base_img.height()-dist_v, base_img.width(), base_img.height()-(dist_v))
@@ -651,11 +651,11 @@ class Plugin(RevealerPlugin):
             cal_painter.drawImage(0,0, base_img)
 
             #black lines in the middle of border top left only
-            cal_painter.setPen(QPen(Qt.black, 1, Qt.DashDotDotLine))
+            cal_painter.setPen(QPen(Qt.black, 1, Qt.ZcashDotDotLine))
             cal_painter.drawLine(0, dist_v, base_img.width(), dist_v)
             cal_painter.drawLine(dist_h, 0,  dist_h, base_img.height())
 
-            pen = QPen(Qt.black, 2, Qt.DashDotDotLine)
+            pen = QPen(Qt.black, 2, Qt.ZcashDotDotLine)
             cal_painter.setPen(pen)
             n=15
 

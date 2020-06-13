@@ -1,16 +1,16 @@
 include LICENCE RELEASE-NOTES AUTHORS
 include README.rst
-include electrum-dash.desktop
+include electrum-zcash.desktop
 include *.py
-include electrum-dash
+include electrum-zcash
 include contrib/requirements/requirements.txt
 include contrib/requirements/requirements-hw.txt
 recursive-include packages *.py
 recursive-include packages cacert.pem
 graft debian
 
-graft electrum_dash
-prune electrum_dash/tests
+graft electrum_zcash
+prune electrum_zcash/tests
 
 global-exclude __pycache__
 global-exclude *.py[co~]

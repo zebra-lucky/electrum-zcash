@@ -2,7 +2,7 @@ from kivy.factory import Factory
 from kivy.lang import Builder
 
 Builder.load_string('''
-#:import _ electrum_dash.gui.kivy.i18n._
+#:import _ electrum_zcash.gui.kivy.i18n._
 
 <WarnDialog@Popup>
     id: popup
@@ -15,7 +15,7 @@ Builder.load_string('''
         spacing: 10
         orientation: 'vertical'
         Image:
-            source:'atlas://electrum_dash/gui/kivy/theming/light/error'
+            source:'atlas://electrum_zcash/gui/kivy/theming/light/error'
             size_hint_y: 0.1
         Label:
             id: warn_msg

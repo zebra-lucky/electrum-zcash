@@ -1,6 +1,4 @@
 # -*- mode: python -*-
-import os
-import os.path
 import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
@@ -11,11 +9,6 @@ for i, x in enumerate(sys.argv):
         break
 else:
     raise Exception('no name')
-
-PY36BINDIR = os.environ.get('PY36BINDIR')
-TRAVIS_TAG = os.environ.get('TRAVIS_TAG')
-DASH_ELECTRUM_VERSION = os.environ.get('DASH_ELECTRUM_VERSION')
-ICONS_FILE = 'electrum_dash/gui/icons/electrum-dash.icns'
 
 hiddenimports = collect_submodules('trezorlib')
 hiddenimports += collect_submodules('hideezlib')
@@ -29,42 +22,43 @@ hiddenimports += collect_submodules('websocket')
 hiddenimports.remove('safetlib.qt.pinmatrix')
 
 hiddenimports += [
-    'electrum_dash',
-    'electrum_dash.base_crash_reporter',
-    'electrum_dash.base_wizard',
-    'electrum_dash.plot',
-    'electrum_dash.qrscanner',
-    'electrum_dash.websockets',
-    'electrum_dash.gui.qt',
+    'electrum_zcash',
+    'electrum_zcash.base_crash_reporter',
+    'electrum_zcash.base_wizard',
+    'electrum_zcash.plot',
+    'electrum_zcash.qrscanner',
+    'electrum_zcash.websockets',
+    'electrum_zcash.gui.qt',
     'PyQt5.sip',
     'PyQt5.QtPrintSupport',  # needed by Revealer
 
-    'electrum_dash.plugins',
+    'electrum_zcash.plugins',
 
-    'electrum_dash.plugins.hw_wallet.qt',
+    'electrum_zcash.plugins.hw_wallet.qt',
 
-    'electrum_dash.plugins.audio_modem.qt',
-    'electrum_dash.plugins.cosigner_pool.qt',
-    'electrum_dash.plugins.digitalbitbox.qt',
-    'electrum_dash.plugins.email_requests.qt',
-    'electrum_dash.plugins.keepkey.qt',
-    'electrum_dash.plugins.revealer.qt',
-    'electrum_dash.plugins.labels.qt',
-    'electrum_dash.plugins.trezor.qt',
-    'electrum_dash.plugins.hideez.client',
-    'electrum_dash.plugins.hideez.qt',
-    'electrum_dash.plugins.safe_t.client',
-    'electrum_dash.plugins.safe_t.qt',
-    'electrum_dash.plugins.ledger.qt',
-    'electrum_dash.plugins.virtualkeyboard.qt',
+    'electrum_zcash.plugins.audio_modem.qt',
+    'electrum_zcash.plugins.cosigner_pool.qt',
+    'electrum_zcash.plugins.digitalbitbox.qt',
+    'electrum_zcash.plugins.email_requests.qt',
+    'electrum_zcash.plugins.keepkey.qt',
+    'electrum_zcash.plugins.revealer.qt',
+    'electrum_zcash.plugins.labels.qt',
+    'electrum_zcash.plugins.trezor.qt',
+    'electrum_zcash.plugins.hideez.client',
+    'electrum_zcash.plugins.hideez.qt',
+    'electrum_zcash.plugins.safe_t.client',
+    'electrum_zcash.plugins.safe_t.qt',
+    'electrum_zcash.plugins.ledger.qt',
+    'electrum_zcash.plugins.virtualkeyboard.qt',
 ]
 
 datas = [
-    ('electrum_dash/checkpoints*.*', 'electrum_dash'),
-    ('electrum_dash/*.json', 'electrum_dash'),
-    ('electrum_dash/locale', 'electrum_dash/locale'),
-    ('electrum_dash/wordlist', 'electrum_dash/wordlist'),
-    ('electrum_dash/gui/icons', 'electrum_dash/gui/icons'),
+    ('electrum_zcash/checkpoints*.*', 'electrum_zcash'),
+    ('electrum_zcash/*.json', 'electrum_zcash'),
+    ('electrum_zcash/locale', 'electrum_zcash/locale'),
+    ('electrum_zcash/wordlist', 'electrum_zcash/wordlist'),
+    ('electrum_zcash/gui/icons', 'electrum_zcash/gui/icons'),
+    ('C:\\zbarw', '.'),
 ]
 
 datas += collect_data_files('trezorlib')
@@ -73,16 +67,10 @@ datas += collect_data_files('safetlib')
 datas += collect_data_files('btchip')
 datas += collect_data_files('keepkeylib')
 
-# Add the QR Scanner helper app
-if TRAVIS_TAG:
-    QRREADER_ZPATH = 'contrib/CalinsQRReader/build/Release/CalinsQRReader.app'
-    QRREADER_PATH = './contrib/CalinsQRReader/build/Release/CalinsQRReader.app'
-    datas += [(QRREADER_ZPATH, QRREADER_PATH)]
-
 # Add libusb so Trezor and Safe-T mini will work
-binaries = [('../libusb-1.0.dylib', '.')]
-binaries += [('../libsecp256k1.0.dylib', '.')]
-binaries += [('/usr/local/lib/libgmp.10.dylib', '.')]
+binaries = [('C:/Python36/libusb-1.0.dll', '.')]
+binaries += [('C:/x11_hash/libx11hash-0.dll', '.')]
+binaries += [('C:/libsecp256k1/libsecp256k1.dll', '.')]
 
 # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-remove-tkinter-tcl
 sys.modules['FixTk'] = None
@@ -127,7 +115,7 @@ excludes += [
     'PyQt5.QtWinExtras',
 ]
 
-a = Analysis(['electrum-dash'],
+a = Analysis(['electrum-zcash'],
              hiddenimports=hiddenimports,
              datas=datas,
              binaries=binaries,
@@ -149,12 +137,27 @@ exe = EXE(pyz,
           strip=False,
           upx=False,
           console=False,
-          icon='electrum_dash/gui/icons/electrum-dash.ico',
-          name=os.path.join('build/electrum-dash/electrum-dash', cmdline_name))
+          icon='electrum_zcash/gui/icons/electrum-zcash.ico',
+          name=os.path.join('build\\pyi.win32\\electrum', cmdline_name))
 
-# trezorctl separate bin
-tctl_a = Analysis([os.path.join(PY36BINDIR, 'trezorctl')],
-                  hiddenimports=['pkgutil'],
+# exe with console output
+conexe = EXE(pyz,
+          a.scripts,
+          exclude_binaries=True,
+          debug=False,
+          strip=False,
+          upx=False,
+          console=True,
+          icon='electrum_zcash/gui/icons/electrum-zcash.ico',
+          name=os.path.join('build\\pyi.win32\\electrum',
+                            'console-%s' % cmdline_name))
+
+# trezorctl separate executable
+tctl_a = Analysis(['C:/Python36/Scripts/trezorctl'],
+                  hiddenimports=[
+                    'pkgutil',
+                    'win32api',
+                  ],
                   excludes=excludes,
                   runtime_hooks=['pyi_tctl_runtimehook.py'])
 
@@ -167,24 +170,11 @@ tctl_exe = EXE(tctl_pyz,
            strip=False,
            upx=False,
            console=True,
-           name=os.path.join('build/electrum-dash/electrum-dash', 'trezorctl.bin'))
+           name=os.path.join('build\\pyi.win32\\electrum', 'trezorctl.exe'))
 
-coll = COLLECT(exe, #tctl_exe,
+coll = COLLECT(exe, conexe, #tctl_exe,
                a.binaries,
                a.datas,
                strip=False,
                upx=False,
-               name=os.path.join('dist', 'electrum-dash'))
-
-app = BUNDLE(coll,
-             info_plist={
-                'NSHighResolutionCapable': True,
-                'NSSupportsAutomaticGraphicsSwitching': True,
-                'CFBundleURLTypes': [
-                    {'CFBundleURLName': 'dash', 'CFBundleURLSchemes': ['dash']}
-                ],
-             },
-             name=os.path.join('dist', 'Dash Electrum.app'),
-             appname="Dash Electrum",
-	         icon=ICONS_FILE,
-             version=DASH_ELECTRUM_VERSION)
+               name=os.path.join('dist', 'electrum-zcash'))

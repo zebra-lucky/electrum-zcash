@@ -1,8 +1,8 @@
 from functools import partial
 
-from electrum_dash.i18n import _
-from electrum_dash.plugin import hook
-from electrum_dash.wallet import Standard_Wallet
+from electrum_zcash.i18n import _
+from electrum_zcash.plugin import hook
+from electrum_zcash.wallet import Standard_Wallet
 
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
 from ..hw_wallet.plugin import only_hook_if_libraries_available

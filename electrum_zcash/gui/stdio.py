@@ -1,19 +1,14 @@
-import colorama
 import getpass
 import logging
-import time
-from colorama import Fore, Style
 from datetime import datetime
 from decimal import Decimal
 
-from electrum_dash import WalletStorage, Wallet
-from electrum_dash.dash_ps import filter_log_line, PSLogSubCat
-from electrum_dash.dash_tx import SPEC_TX_NAMES
-from electrum_dash.util import format_satoshis
-from electrum_dash.bitcoin import is_address, COIN, TYPE_ADDRESS
-from electrum_dash.transaction import TxOutput
-from electrum_dash.network import TxBroadcastError, BestEffortRequestFailed
-from electrum_dash.logging import console_stderr_handler
+from electrum_zcash import WalletStorage, Wallet
+from electrum_zcash.util import format_satoshis
+from electrum_zcash.bitcoin import is_address, COIN, TYPE_ADDRESS
+from electrum_zcash.transaction import TxOutput
+from electrum_zcash.network import TxBroadcastError, BestEffortRequestFailed
+from electrum_zcash.logging import console_stderr_handler
 
 _ = lambda x:x  # i18n
 
@@ -24,20 +19,15 @@ _ = lambda x:x  # i18n
 class ElectrumGui:
 
     def __init__(self, config, daemon, plugins):
-        colorama.init()
         self.config = config
         self.network = daemon.network
         storage = WalletStorage(config.get_wallet_path())
         if not storage.file_exists:
-            print("Wallet not found. try 'electrum-dash create'")
+            print("Wallet not found. try 'electrum-zcash create'")
             exit()
         if storage.is_encrypted():
             password = getpass.getpass('Password:', stream=None)
             storage.decrypt(password)
-
-        if getattr(storage, 'backup_message', None):
-            print(f'{storage.backup_message}\n')
-            input('Press Enter to continue...')
 
         self.done = 0
         self.last_balance = ""
@@ -51,7 +41,6 @@ class ElectrumGui:
 
         self.wallet = Wallet(storage)
         self.wallet.start_network(self.network)
-        self.wallet.psman.config = config
         self.contacts = self.wallet.contacts
 
         self.network.register_callback(self.on_network, ['wallet_updated', 'network_updated', 'banner'])
@@ -63,9 +52,6 @@ class ElectrumGui:
                          _("[r] - show own receipt addresses"), \
                          _("[c] - display contacts"), \
                          _("[b] - print server banner"), \
-                         _("[M] - start PrivateSend mixing"),
-                         _("[S] - stop PrivateSend mixing"),
-                         _("[l][f][a] - print PrivateSend log (filtered/all)"),
                          _("[q] - quit") ]
         self.num_commands = len(self.commands)
 
@@ -88,9 +74,6 @@ class ElectrumGui:
         elif c == "b" : self.print_banner()
         elif c == "n" : self.network_dialog()
         elif c == "e" : self.settings_dialog()
-        elif c == "M" : self.start_mixing()
-        elif c == "S" : self.stop_mixing()
-        elif c.startswith('l'): self.privatesend_log(c)
         elif c == "q" : self.done = 1
         else: self.print_commands()
 
@@ -108,25 +91,13 @@ class ElectrumGui:
         messages = []
 
         hist_list = reversed(self.wallet.get_history(config=self.config))
-        def_dip2 = not self.wallet.psman.unsupported
-        show_dip2 = self.config.get('show_dip2_tx_type', def_dip2)
-        if show_dip2:
-            width = [20, 18, 22, 14, 14]
-            wdelta = (80 - sum(width) - 5) // 3
-            format_str = ("%" + "%d" % width[0] + "s" +
-                          "%" + "%d" % width[1] + "s" +
-                          "%" + "%d" % (width[2] + wdelta) + "s" +
-                          "%" + "%d" % (width[3] + wdelta) + "s" +
-                          "%" + "%d" % (width[4] + wdelta) + "s")
-        else:
-            width = [20, 40, 14, 14]
-            wdelta = (80 - sum(width) - 4) // 3
-            format_str = ("%" + "%d" % width[0] + "s" +
-                          "%" + "%d" % (width[1] + wdelta) + "s" +
-                          "%" + "%d" % (width[2] + wdelta) + "s" +
-                          "%" + "%d" % (width[3] + wdelta) + "s")
-        for (tx_hash, tx_type, tx_mined_status, delta, balance,
-             islock, group_txid, group_data) in hist_list:
+        width = [20, 40, 14, 14]
+        wdelta = (80 - sum(width) - 4) // 3
+        format_str = ("%" + "%d" % width[0] + "s" +
+                      "%" + "%d" % (width[1] + wdelta) + "s" +
+                      "%" + "%d" % (width[2] + wdelta) + "s" +
+                      "%" + "%d" % (width[3] + wdelta) + "s")
+        for tx_hash, tx_type, tx_mined_status, delta, balance in hist_list:
             if tx_mined_status.conf:
                 timestamp = tx_mined_status.timestamp
                 try:
@@ -134,34 +105,18 @@ class ElectrumGui:
                     time_str = dttm.isoformat(' ')[:-3]
                 except Exception:
                     time_str = "unknown"
-            elif islock:
-                dttm = datetime.fromtimestamp(islock)
-                time_str = dttm.isoformat(' ')[:-3]
             else:
                 time_str = 'unconfirmed'
 
             label = self.wallet.get_label(tx_hash)
-            if show_dip2:
-                tx_type_name = SPEC_TX_NAMES.get(tx_type, str(tx_type))
-                msg = format_str % (time_str, tx_type_name, label,
-                                    format_satoshis(delta, whitespaces=True),
-                                    format_satoshis(balance, whitespaces=True))
-                messages.append(msg)
-            else:
-                msg = format_str % (time_str, label,
-                                    format_satoshis(delta, whitespaces=True),
-                                    format_satoshis(balance, whitespaces=True))
-                messages.append(msg)
-        if show_dip2:
-            self.print_list(messages[::-1],
-                            format_str % (_("Date"), 'Type',
-                                          _("Description"), _("Amount"),
-                                          _("Balance")))
-        else:
-            self.print_list(messages[::-1],
-                            format_str % (_("Date"),
-                                          _("Description"), _("Amount"),
-                                          _("Balance")))
+            msg = format_str % (time_str, label,
+                                format_satoshis(delta, whitespaces=True),
+                                format_satoshis(balance, whitespaces=True))
+            messages.append(msg)
+        self.print_list(messages[::-1],
+                        format_str % (_("Date"),
+                                      _("Description"), _("Amount"),
+                                      _("Balance")))
 
     def print_balance(self):
         print(self.get_balance())
@@ -223,7 +178,7 @@ class ElectrumGui:
 
     def do_send(self):
         if not is_address(self.str_recipient):
-            print(_('Invalid Dash address'))
+            print(_('Invalid Zcash address'))
             return
         try:
             amount = int(Decimal(self.str_amount) * COIN)
@@ -260,8 +215,7 @@ class ElectrumGui:
 
         print(_("Please wait..."))
         try:
-            coro = self.wallet.psman.broadcast_transaction(tx)
-            self.network.run_from_another_thread(coro)
+            self.network.run_from_another_thread(self.network.broadcast_transaction(tx))
         except TxBroadcastError as e:
             msg = e.get_message_for_gui()
             print(msg)
@@ -274,55 +228,13 @@ class ElectrumGui:
             #self.update_contacts_tab()
 
     def network_dialog(self):
-        print("use 'electrum-dash setconfig server/proxy' to change your network settings")
+        print("use 'electrum-zcash setconfig server/proxy' to change your network settings")
         return True
 
 
     def settings_dialog(self):
-        print("use 'electrum-dash setconfig' to change your settings")
+        print("use 'electrum-zcash setconfig' to change your settings")
         return True
-
-    def start_mixing(self):
-        if self.wallet.has_password():
-            password = self.password_dialog()
-            if not password:
-                return
-        else:
-            password = None
-        self.wallet.psman.start_mixing(password)
-        return True
-
-    def stop_mixing(self):
-        self.wallet.psman.stop_mixing()
-
-    def privatesend_log(self, cmd):
-        try:
-            cmd = cmd.lower()
-            subcmds = cmd[1:].split()
-            print_filtered = True if 'f' in subcmds else False
-            print_tail = True if 'a' not in subcmds else False
-            log_handler = self.wallet.psman.log_handler
-            p_from = log_handler.tail - 20 if print_tail else log_handler.head
-            p_from = max(p_from, log_handler.head)
-            for i in range(p_from, log_handler.tail):
-                log_line = ''
-                log_record = log_handler.log.get(i, None)
-                if log_record:
-                    created = time.localtime(log_record.created)
-                    created = time.strftime('%x %X', created)
-                    log_line = f'{created} {log_record.msg}'
-                    if print_filtered:
-                        log_line = filter_log_line(log_line)
-                    if log_record.subcat == PSLogSubCat.WflDone:
-                        log_line = f'{Fore.BLUE}{log_line}{Style.RESET_ALL}'
-                    elif log_record.subcat == PSLogSubCat.WflOk:
-                        log_line = f'{Fore.GREEN}{log_line}{Style.RESET_ALL}'
-                    elif log_record.subcat == PSLogSubCat.WflErr:
-                        log_line = f'{Fore.RED}{log_line}{Style.RESET_ALL}'
-                print(log_line)
-        except:
-            import traceback
-            traceback.print_exc()
 
     def password_dialog(self):
         return getpass.getpass()

@@ -38,7 +38,7 @@ try:
     from . import paymentrequest_pb2 as pb2
 except ImportError:
     sys.exit("Error: could not find paymentrequest_pb2.py. Create it with "
-             "'protoc --proto_path=electrum_dash/ --python_out=electrum_dash/ electrum_dash/paymentrequest.proto'")
+             "'protoc --proto_path=electrum_zcash/ --python_out=electrum_zcash/ electrum_zcash/paymentrequest.proto'")
 
 from . import bitcoin, ecc, util, transaction, x509, rsakey
 from .util import bh2u, bfh, export_meta, import_meta, make_aiohttp_session
@@ -52,8 +52,8 @@ from .logging import get_logger, Logger
 _logger = get_logger(__name__)
 
 
-REQUEST_HEADERS = {'Accept': 'application/dash-paymentrequest', 'User-Agent': 'Dash-Electrum'}
-ACK_HEADERS = {'Content-Type':'application/dash-payment','Accept':'application/dash-paymentack','User-Agent':'Dash-Electrum'}
+REQUEST_HEADERS = {'Accept': 'application/zcash-paymentrequest', 'User-Agent': 'Electrum-Zcash'}
+ACK_HEADERS = {'Content-Type':'application/zcash-payment','Accept':'application/zcash-paymentack','User-Agent':'Electrum-Zcash'}
 
 ca_path = certifi.where()
 ca_list = None
@@ -86,7 +86,7 @@ async def get_payment_request(url: str) -> 'PaymentRequest':
                     response.raise_for_status()
                     # Guard against `dash:`-URIs with invalid payment request URLs
                     if "Content-Type" not in response.headers \
-                    or response.headers["Content-Type"] != "application/dash-paymentrequest":
+                    or response.headers["Content-Type"] != "application/zcash-paymentrequest":
                         data = None
                         error = "payment URL not pointing to a payment request handling server"
                     else:
@@ -298,7 +298,7 @@ class PaymentRequest:
         paymnt.transactions.append(bfh(raw_tx))
         ref_out = paymnt.refund_to.add()
         ref_out.script = util.bfh(transaction.Transaction.pay_script(TYPE_ADDRESS, refund_addr))
-        paymnt.memo = "Paid using Dash Electrum"
+        paymnt.memo = "Paid using Electrum-Zcash"
         pm = paymnt.SerializeToString()
         payurl = urllib.parse.urlparse(pay_det.payment_url)
         resp_content = None

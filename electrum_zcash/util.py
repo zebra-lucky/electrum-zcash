@@ -66,18 +66,18 @@ def inv_dict(d):
 ca_path = certifi.where()
 
 
-base_units = {'DASH':8, 'mDASH':5, 'uDASH':2, 'duffs':0}
+base_units = {'Zcash':8, 'mZcash':5, 'uZcash':2, 'duffs':0}
 base_units_inverse = inv_dict(base_units)
-base_units_list = ['DASH', 'mDASH', 'uDASH', 'duffs']  # list(dict) does not guarantee order
+base_units_list = ['Zcash', 'mZcash', 'uZcash', 'duffs']  # list(dict) does not guarantee order
 
-DECIMAL_POINT_DEFAULT = 8  # DASH
+DECIMAL_POINT_DEFAULT = 8  # Zcash
 
 
 class UnknownBaseUnit(Exception): pass
 
 
 def decimal_point_to_base_unit_name(dp: int) -> str:
-    # e.g. 8 -> "DASH"
+    # e.g. 8 -> "Zcash"
     try:
         return base_units_inverse[dp]
     except KeyError:
@@ -85,7 +85,7 @@ def decimal_point_to_base_unit_name(dp: int) -> str:
 
 
 def base_unit_name_to_decimal_point(unit_name: str) -> int:
-    # e.g. "DASH" -> 8
+    # e.g. "Zcash" -> 8
     try:
         return base_units[unit_name]
     except KeyError:
@@ -391,7 +391,7 @@ def assert_datadir_available(config_path):
         return
     else:
         raise FileNotFoundError(
-            'Dash Electrum datadir does not exist. Was it deleted while running?' + '\n' +
+            'Electrum-Zcash datadir does not exist. Was it deleted while running?' + '\n' +
             'Should be at {}'.format(path))
 
 
@@ -486,11 +486,11 @@ def user_dir():
     if 'ANDROID_DATA' in os.environ:
         return android_data_dir()
     elif os.name == 'posix':
-        return os.path.join(os.environ["HOME"], ".electrum-dash")
+        return os.path.join(os.environ["HOME"], ".electrum-zcash")
     elif "APPDATA" in os.environ:
-        return os.path.join(os.environ["APPDATA"], "Electrum-DASH")
+        return os.path.join(os.environ["APPDATA"], "Electrum-Zcash")
     elif "LOCALAPPDATA" in os.environ:
-        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-DASH")
+        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-Zcash")
     else:
         #raise Exception("No home directory found in environment variables.")
         return
@@ -662,7 +662,7 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 mainnet_block_explorers = {
-    'Dash.org': ('https://explorer.dash.org/',
+    'Zcash.org': ('https://explorer.dash.org/',
                  {'tx': 'tx/', 'addr': 'address/'}),
     'Insight.dash.org': ('https://insight.dash.org/insight/',
                          {'tx': 'tx/', 'addr': 'address/'}),
@@ -671,7 +671,7 @@ mainnet_block_explorers = {
 }
 
 testnet_block_explorers = {
-    'Dash.org': ('https://testnet-insight.dashevo.org/insight/',
+    'Zcash.org': ('https://testnet-insight.dashevo.org/insight/',
                  {'tx': 'tx/', 'addr': 'address/'}),
     'system default': ('blockchain:/',
                        {'tx': 'tx/', 'addr': 'address/'}),
@@ -683,7 +683,7 @@ def block_explorer_info():
 
 def block_explorer(config: 'SimpleConfig') -> str:
     from . import constants
-    default_ = 'Dash.org' if not constants.net.TESTNET else 'Dash.org'
+    default_ = 'Zcash.org' if not constants.net.TESTNET else 'Zcash.org'
     be_key = config.get('block_explorer', default_)
     be = block_explorer_info().get(be_key)
     return be_key if be is not None else default_
@@ -719,12 +719,12 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise InvalidBitcoinURI("Not a Dash address")
+            raise InvalidBitcoinURI("Not a Zcash address")
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
     if u.scheme != 'dash':
-        raise InvalidBitcoinURI("Not a Dash URI")
+        raise InvalidBitcoinURI("Not a Zcash URI")
     address = u.path
 
     # python for android fails to parse query
@@ -741,7 +741,7 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
     out = {k: v[0] for k, v in pq.items()}
     if address:
         if not bitcoin.is_address(address):
-            raise InvalidBitcoinURI(f"Invalid Dash address: {address}")
+            raise InvalidBitcoinURI(f"Invalid Zcash address: {address}")
         out['address'] = address
     if 'amount' in out:
         am = out['amount']
@@ -960,7 +960,7 @@ class TxMinedInfo(NamedTuple):
 
 def make_aiohttp_session(proxy: Optional[dict], headers=None, timeout=None):
     if headers is None:
-        headers = {'User-Agent': 'Dash-Electrum'}
+        headers = {'User-Agent': 'Electrum-Zcash'}
     if timeout is None:
         timeout = aiohttp.ClientTimeout(total=30)
     elif isinstance(timeout, (int, float)):

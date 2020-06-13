@@ -1,11 +1,11 @@
 from typing import NamedTuple, Optional
 
-from electrum_dash import keystore
-from electrum_dash import mnemonic
-from electrum_dash import old_mnemonic
-from electrum_dash.util import bh2u, bfh
-from electrum_dash.mnemonic import is_new_seed, is_old_seed, seed_type
-from electrum_dash.version import SEED_PREFIX
+from electrum_zcash import keystore
+from electrum_zcash import mnemonic
+from electrum_zcash import old_mnemonic
+from electrum_zcash.util import bh2u, bfh
+from electrum_zcash.mnemonic import is_new_seed, is_old_seed, seed_type
+from electrum_zcash.version import SEED_PREFIX
 
 from . import SequentialTestCase
 from .test_wallet_vertical import UNICODE_HORROR, UNICODE_HORROR_HEX

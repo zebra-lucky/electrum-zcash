@@ -42,18 +42,18 @@ from PyQt5.QtWidgets import (QApplication, QSystemTrayIcon, QWidget, QMenu,
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 import PyQt5.QtCore as QtCore
 
-from electrum_dash.i18n import _, set_language
-from electrum_dash.plugin import run_hook
-from electrum_dash.base_wizard import GoBack
-from electrum_dash.util import (UserCancelled, profiler,
+from electrum_zcash.i18n import _, set_language
+from electrum_zcash.plugin import run_hook
+from electrum_zcash.base_wizard import GoBack
+from electrum_zcash.util import (UserCancelled, profiler,
                                 WalletFileException, BitcoinException, get_new_wallet_name)
-from electrum_dash.wallet import Wallet, Abstract_Wallet
-from electrum_dash.logging import Logger
+from electrum_zcash.wallet import Wallet, Abstract_Wallet
+from electrum_zcash.logging import Logger
 
 from .installwizard import InstallWizard, WalletAlreadyOpenInMemory
 
 
-from .dash_net_dialog import DashNetDialog
+from .dash_net_dialog import ZcashNetDialog
 from .util import get_default_language, read_QIcon, ColorScheme, custom_message_box
 from .main_window import ElectrumWindow
 from .network_dialog import NetworkDialog
@@ -81,7 +81,7 @@ class QNetworkUpdatedSignalObject(QObject):
     network_updated_signal = pyqtSignal(str, object)
 
 
-class QDashNetSignalsObject(QObject):
+class QZcashNetSignalsObject(QObject):
     main = pyqtSignal(str, object)
     dlg = pyqtSignal(str, object)
 
@@ -100,7 +100,7 @@ class ElectrumGui(Logger):
         if hasattr(QtCore.Qt, "AA_ShareOpenGLContexts"):
             QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
         if hasattr(QGuiApplication, 'setDesktopFileName'):
-            QGuiApplication.setDesktopFileName('electrum-dash.desktop')
+            QGuiApplication.setDesktopFileName('electrum-zcash.desktop')
         self.gui_thread = threading.current_thread()
         self.config = config
         self.daemon = daemon
@@ -109,7 +109,7 @@ class ElectrumGui(Logger):
         self.efilter = OpenFileEventFilter(self.windows)
         self.app = QElectrumApplication(sys.argv)
         self.app.installEventFilter(self.efilter)
-        self.app.setWindowIcon(read_QIcon("electrum-dash.png"))
+        self.app.setWindowIcon(read_QIcon("electrum-zcash.png"))
         # timer
         self.timer = QTimer(self.app)
         self.timer.setSingleShot(False)
@@ -118,13 +118,13 @@ class ElectrumGui(Logger):
         self.nd = None
         self.dash_net_dialog = None
         self.network_updated_signal_obj = QNetworkUpdatedSignalObject()
-        self.dash_net_sobj = QDashNetSignalsObject()
+        self.dash_net_sobj = QZcashNetSignalsObject()
         self._num_wizards_in_progress = 0
         self._num_wizards_lock = threading.Lock()
         # init tray
         self.dark_icon = self.config.get("dark_icon", False)
         self.tray = QSystemTrayIcon(self.tray_icon(), None)
-        self.tray.setToolTip('Dash Electrum')
+        self.tray.setToolTip('Electrum-Zcash')
         self.tray.activated.connect(self.tray_activated)
         self.build_tray_menu()
         self.tray.show()
@@ -162,7 +162,7 @@ class ElectrumGui(Logger):
             submenu.addAction(_("Close"), window.close)
         m.addAction(_("Dark/Light"), self.toggle_tray_icon)
         m.addSeparator()
-        m.addAction(_("Exit Dash Electrum"), self.close)
+        m.addAction(_("Exit Electrum-Zcash"), self.close)
 
     def tray_icon(self):
         if self.dark_icon:
@@ -194,7 +194,7 @@ class ElectrumGui(Logger):
 
     def show_network_dialog(self, parent):
         if not self.daemon.network:
-            parent.show_warning(_('You are using Dash Electrum in offline mode; restart Dash Electrum if you want to get connected'), title=_('Offline'))
+            parent.show_warning(_('You are using Electrum-Zcash in offline mode; restart Electrum-Zcash if you want to get connected'), title=_('Offline'))
             return
         if self.nd:
             self.nd.on_update()
@@ -207,8 +207,8 @@ class ElectrumGui(Logger):
 
     def show_dash_net_dialog(self, parent):
         if not self.daemon.network:
-            parent.show_warning(_('You are using Dash Electrum in offline'
-                                  ' mode; restart Dash Electrum if you want'
+            parent.show_warning(_('You are using Electrum-Zcash in offline'
+                                  ' mode; restart Electrum-Zcash if you want'
                                   ' to get connected'), title=_('Offline'))
             return
         if self.dash_net_dialog:
@@ -216,7 +216,7 @@ class ElectrumGui(Logger):
             self.dash_net_dialog.show()
             self.dash_net_dialog.raise_()
             return
-        self.dash_net_dialog = DashNetDialog(self.daemon.network, self.config,
+        self.dash_net_dialog = ZcashNetDialog(self.daemon.network, self.config,
                                              self.dash_net_sobj)
         self.dash_net_dialog.show()
 

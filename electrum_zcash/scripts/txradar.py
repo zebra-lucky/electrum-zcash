@@ -2,8 +2,8 @@
 import sys
 import asyncio
 
-from electrum_dash.network import filter_protocol, Network
-from electrum_dash.util import create_and_start_event_loop, log_exceptions
+from electrum_zcash.network import filter_protocol, Network
+from electrum_zcash.util import create_and_start_event_loop, log_exceptions
 
 
 try:

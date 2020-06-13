@@ -9,11 +9,11 @@ from PyQt5.QtWidgets import (QLineEdit, QComboBox, QAbstractItemView,
                              QDataWidgetMapper, QHBoxLayout, QFormLayout,
                              QSpinBox, QTreeWidgetItem)
 
-from electrum_dash.i18n import _
-from electrum_dash.masternode_budget import BudgetProposal, BudgetVote
-from electrum_dash.masternode_manager import BUDGET_FEE_CONFIRMATIONS
-from electrum_dash.util import block_explorer_URL, format_satoshis_plain
-from electrum_dash.logging import get_logger
+from electrum_zcash.i18n import _
+from electrum_zcash.masternode_budget import BudgetProposal, BudgetVote
+from electrum_zcash.masternode_manager import BUDGET_FEE_CONFIRMATIONS
+from electrum_zcash.util import block_explorer_URL, format_satoshis_plain
+from electrum_zcash.logging import get_logger
 
 from .amountedit import BTCAmountEdit
 from . import util
@@ -242,7 +242,7 @@ class ProposalsTab(QWidget, util.MessageBoxMixin):
         self.unsubmitted_proposals = []
 
         description = ''.join(['You can create a budget proposal below. ',
-                'Proposals require 5 DASH to create. ',
+                'Proposals require 5 Zcash to create. ',
                 'Your proposal can be submitted once the collateral transaction has enough confirmations.'])
         description = QLabel(_(description))
         description.setWordWrap(True)
@@ -275,7 +275,7 @@ class ProposalsTab(QWidget, util.MessageBoxMixin):
         form.addRow(_('Number of Payments:'), self.payments_count_edit)
         form.addRow(_('Starting Block:'), self.start_block_edit)
         form.addRow(_('Payment Address:'), self.address_edit)
-        form.addRow(_('Monthly DASH Payment:'), self.amount_edit)
+        form.addRow(_('Monthly Zcash Payment:'), self.amount_edit)
 
         vbox = QVBoxLayout()
         vbox.addWidget(self.tree)

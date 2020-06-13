@@ -3,9 +3,9 @@
 import sys
 import asyncio
 
-from electrum_dash.network import Network
-from electrum_dash.util import print_msg, create_and_start_event_loop
-from electrum_dash.synchronizer import SynchronizerBase
+from electrum_zcash.network import Network
+from electrum_zcash.util import print_msg, create_and_start_event_loop
+from electrum_zcash.synchronizer import SynchronizerBase
 
 
 try:

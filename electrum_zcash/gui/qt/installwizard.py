@@ -14,18 +14,18 @@ from PyQt5.QtWidgets import (QWidget, QDialog, QLabel, QHBoxLayout, QMessageBox,
                              QVBoxLayout, QLineEdit, QFileDialog, QPushButton,
                              QGridLayout, QSlider, QScrollArea)
 
-from electrum_dash.wallet import Wallet, Abstract_Wallet
-from electrum_dash.storage import WalletStorage
-from electrum_dash.util import UserCancelled, InvalidPassword, WalletFileException
-from electrum_dash.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET, GoBack
-from electrum_dash.i18n import _
+from electrum_zcash.wallet import Wallet, Abstract_Wallet
+from electrum_zcash.storage import WalletStorage
+from electrum_zcash.util import UserCancelled, InvalidPassword, WalletFileException
+from electrum_zcash.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET, GoBack
+from electrum_zcash.i18n import _
 
 from .seed_dialog import SeedLayout, KeysLayout
 from .network_dialog import NetworkChoiceLayout
 from .util import (MessageBoxMixin, Buttons, icon_path, ChoicesLayout, WWLabel,
                    InfoButton, char_width_in_lineedit)
 from .password_dialog import PasswordLayout, PasswordLayoutForHW, PW_NEW
-from electrum_dash.plugin import run_hook
+from electrum_zcash.plugin import run_hook
 
 MSG_ENTER_PASSWORD = _("Choose a password to encrypt your wallet keys.") + '\n'\
                      + _("Leave this field empty if you want to disable encryption.")
@@ -33,7 +33,7 @@ MSG_HW_STORAGE_ENCRYPTION = _("Set wallet file encryption.") + '\n'\
                           + _("Your wallet file does not contain secrets, mostly just metadata. ") \
                           + _("It also contains your master public key that allows watching your addresses.") + '\n\n'\
                           + _("Note: If you enable this setting, you will need your hardware device to open your wallet.")
-WIF_HELP_TEXT = (_('WIF keys are typed in Dash Electrum, based on script type.') + '\n\n' +
+WIF_HELP_TEXT = (_('WIF keys are typed in Electrum-Zcash, based on script type.') + '\n\n' +
                  _('A few examples') + ':\n' +
                  'p2pkh:XERBBcaPf5D5...       \t-> XhGqfhnL...\n')
 # note: full key is XERBBcaPf5D5oFXTEP7TdPWLem5ktc2Zr3AhhQhHVQaF49fDP6tN
@@ -41,7 +41,7 @@ MSG_PASSPHRASE_WARN_ISSUE4566 = _("Warning") + ": "\
                               + _("You have multiple consecutive whitespaces or leading/trailing "
                                   "whitespaces in your passphrase.") + " " \
                               + _("This is discouraged.") + " " \
-                              + _("Due to a bug, old versions of Dash Electrum will NOT be creating the "
+                              + _("Due to a bug, old versions of Electrum-Zcash will NOT be creating the "
                                   "same wallet as newer versions or other software.")
 
 
@@ -116,7 +116,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
     def __init__(self, config, app, plugins):
         QDialog.__init__(self, None)
         BaseWizard.__init__(self, config, plugins)
-        self.setWindowTitle('Dash Electrum  -  ' + _('Install Wizard'))
+        self.setWindowTitle('Electrum-Zcash  -  ' + _('Install Wizard'))
         self.app = app
         self.config = config
         self.setMinimumSize(600, 400)
@@ -158,7 +158,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox.setStretchFactor(scroll, 1)
         outer_vbox.addLayout(hbox)
         outer_vbox.addLayout(Buttons(self.back_button, self.next_button))
-        self.set_icon('electrum-dash.png')
+        self.set_icon('electrum-zcash.png')
         self.show()
         self.raise_()
         self.refresh_gui()  # Need for QT on MacOSX.  Lame.
@@ -185,7 +185,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox2.addWidget(self.pw_e)
         hbox2.addStretch()
         vbox.addLayout(hbox2)
-        self.set_layout(vbox, title=_('Dash Electrum wallet'))
+        self.set_layout(vbox, title=_('Electrum-Zcash wallet'))
 
         self.temp_storage = WalletStorage(path, manual_upgrades=True)
         wallet_folder = os.path.dirname(self.temp_storage.path)
@@ -291,7 +291,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         path = storage.path
         if storage.requires_split():
             self.hide()
-            msg = _("The wallet '{}' contains multiple accounts, which are no longer supported since Dash Electrum 2.7.\n\n"
+            msg = _("The wallet '{}' contains multiple accounts, which are no longer supported since Electrum-Zcash 2.7.\n\n"
                     "Do you want to split your wallet into multiple files?").format(path)
             if not self.question(msg):
                 return
@@ -591,10 +591,10 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         return None
 
     def init_network(self, network):
-        message = _("Dash Electrum communicates with remote servers to get "
+        message = _("Electrum-Zcash communicates with remote servers to get "
                   "information about your transactions and addresses. The "
                   "servers all fulfill the same purpose only differing in "
-                  "hardware. In most cases you simply want to let Dash Electrum "
+                  "hardware. In most cases you simply want to let Electrum-Zcash "
                   "pick one at random.  However if you prefer feel free to "
                   "select a server manually.")
         choices = [_("Auto connect"), _("Select server manually")]

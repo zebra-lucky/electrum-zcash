@@ -3,18 +3,18 @@ set -ev
 
 cd build
 if [[ -n $TRAVIS_TAG ]]; then
-    BUILD_REPO_URL=https://github.com/akhavr/electrum-dash.git
-    git clone --branch $TRAVIS_TAG $BUILD_REPO_URL electrum-dash
+    BUILD_REPO_URL=https://github.com/akhavr/electrum-zcash.git
+    git clone --branch $TRAVIS_TAG $BUILD_REPO_URL electrum-zcash
 else
-    git clone .. electrum-dash
+    git clone .. electrum-zcash
 fi
 
 
-mkdir -p electrum-dash/dist
+mkdir -p electrum-zcash/dist
 docker run --rm \
     -v $(pwd):/opt \
-    -w /opt/electrum-dash \
-    -t zebralucky/electrum-dash-winebuild:LinuxPy36 /opt/build_linux.sh
+    -w /opt/electrum-zcash \
+    -t zebralucky/electrum-zcash-winebuild:LinuxPy36 /opt/build_linux.sh
 
 
 sudo find . -name '*.po' -delete
@@ -23,13 +23,13 @@ sudo find . -name '*.pot' -delete
 
 docker run --rm \
     -v $(pwd):/opt \
-    -w /opt/electrum-dash/contrib/dash/travis \
-    -t zebralucky/electrum-dash-winebuild:LinuxAppImage ./build_appimage.sh
+    -w /opt/electrum-zcash/contrib/zcash/travis \
+    -t zebralucky/electrum-zcash-winebuild:LinuxAppImage ./build_appimage.sh
 
 
 TOR_PROXY_VERSION=0.4.2.6
 TOR_PROXY_PATH=https://github.com/zebra-lucky/tor-proxy/releases/download
-TOR_DIST=electrum-dash/dist/tor-proxy-setup.exe
+TOR_DIST=electrum-zcash/dist/tor-proxy-setup.exe
 
 TOR_FILE=${TOR_PROXY_VERSION}/tor-proxy-${TOR_PROXY_VERSION}-win32-setup.exe
 wget -O ${TOR_DIST} ${TOR_PROXY_PATH}/${TOR_FILE}
@@ -64,9 +64,9 @@ docker run --rm \
     -e WINEPREFIX=$WINEPREFIX \
     -e PYHOME=$PYHOME \
     -v $(pwd):/opt \
-    -v $(pwd)/electrum-dash/:$WINEPREFIX/drive_c/electrum-dash \
-    -w /opt/electrum-dash \
-    -t zebralucky/electrum-dash-winebuild:WinePy36 /opt/build_wine.sh
+    -v $(pwd)/electrum-zcash/:$WINEPREFIX/drive_c/electrum-zcash \
+    -w /opt/electrum-zcash \
+    -t zebralucky/electrum-zcash-winebuild:WinePy36 /opt/build_wine.sh
 
 
 export WINEARCH=win64
@@ -99,6 +99,6 @@ docker run --rm \
     -e WINEPREFIX=$WINEPREFIX \
     -e PYHOME=$PYHOME \
     -v $(pwd):/opt \
-    -v $(pwd)/electrum-dash/:$WINEPREFIX/drive_c/electrum-dash \
-    -w /opt/electrum-dash \
-    -t zebralucky/electrum-dash-winebuild:WinePy36 /opt/build_wine.sh
+    -v $(pwd)/electrum-zcash/:$WINEPREFIX/drive_c/electrum-zcash \
+    -w /opt/electrum-zcash \
+    -t zebralucky/electrum-zcash-winebuild:WinePy36 /opt/build_wine.sh

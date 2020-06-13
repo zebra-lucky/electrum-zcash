@@ -17,7 +17,7 @@ Builder.load_string('''
     amount: ''
     status: ''
     date: ''
-    icon: 'atlas://electrum_dash/gui/kivy/theming/light/important'
+    icon: 'atlas://electrum_zcash/gui/kivy/theming/light/important'
     Image:
         id: icon
         source: root.icon
@@ -76,10 +76,10 @@ Builder.load_string('''
 ''')
 
 from kivy.properties import BooleanProperty
-from electrum_dash.gui.kivy.i18n import _
-from electrum_dash.util import format_time
-from electrum_dash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
-from electrum_dash.gui.kivy.uix.context_menu import ContextMenu
+from electrum_zcash.gui.kivy.i18n import _
+from electrum_zcash.util import format_time
+from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum_zcash.gui.kivy.uix.context_menu import ContextMenu
 
 invoice_text = {
     PR_UNPAID:_('Pending'),
@@ -88,10 +88,10 @@ invoice_text = {
     PR_EXPIRED:_('Expired')
 }
 pr_icon = {
-    PR_UNPAID: 'atlas://electrum_dash/gui/kivy/theming/light/important',
-    PR_UNKNOWN: 'atlas://electrum_dash/gui/kivy/theming/light/important',
-    PR_PAID: 'atlas://electrum_dash/gui/kivy/theming/light/confirmed',
-    PR_EXPIRED: 'atlas://electrum_dash/gui/kivy/theming/light/close'
+    PR_UNPAID: 'atlas://electrum_zcash/gui/kivy/theming/light/important',
+    PR_UNKNOWN: 'atlas://electrum_zcash/gui/kivy/theming/light/important',
+    PR_PAID: 'atlas://electrum_zcash/gui/kivy/theming/light/confirmed',
+    PR_EXPIRED: 'atlas://electrum_zcash/gui/kivy/theming/light/close'
 }
 
 

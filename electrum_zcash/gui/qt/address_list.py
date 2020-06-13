@@ -32,12 +32,12 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (QAbstractItemView, QHeaderView, QComboBox,
                              QLabel, QMenu)
 
-from electrum_dash.i18n import _
-from electrum_dash.logging import Logger
-from electrum_dash.util import block_explorer_URL, profiler
-from electrum_dash.plugin import run_hook
-from electrum_dash.bitcoin import is_address
-from electrum_dash.wallet import InternalAddressCorruption
+from electrum_zcash.i18n import _
+from electrum_zcash.logging import Logger
+from electrum_zcash.util import block_explorer_URL, profiler
+from electrum_zcash.plugin import run_hook
+from electrum_zcash.bitcoin import is_address
+from electrum_zcash.wallet import InternalAddressCorruption
 
 from .util import (MyTreeView, MONOSPACE_FONT, ColorScheme, webopen,
                    GetDataThread)
@@ -370,7 +370,7 @@ class AddressList(MyTreeView):
         self.am.get_data_thread.need_update.set()
 
     def create_menu(self, position):
-        from electrum_dash.wallet import Multisig_Wallet
+        from electrum_zcash.wallet import Multisig_Wallet
         is_multisig = isinstance(self.wallet, Multisig_Wallet)
         can_delete = self.wallet.can_delete_address()
         selected = self.selectionModel().selectedRows()

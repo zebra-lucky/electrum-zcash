@@ -4,7 +4,7 @@ from kivy.lang import Builder
 from kivy.properties import NumericProperty
 from kivy.uix.boxlayout import BoxLayout
 
-from electrum_dash.gui.kivy.i18n import _
+from electrum_zcash.gui.kivy.i18n import _
 
 
 Builder.load_string('''

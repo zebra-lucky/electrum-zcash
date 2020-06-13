@@ -9,8 +9,8 @@ theming:
 prepare:
 	# running pre build setup
 	@cp tools/buildozer.spec ../../../buildozer.spec
-	# copy electrum-dash to main.py
-	@cp ../../../electrum-dash ../../../main.py
+	# copy electrum-zcash to main.py
+	@cp ../../../electrum-zcash ../../../main.py
 prepare-testnet:
 	@-cd ../../..; sed -r "s:^(title =.*):\1 Testnet:" -i buildozer.spec
 	@-cd ../../..; sed -r "s:^(package.nam.*):\1_Testnet:" -i buildozer.spec
@@ -36,7 +36,7 @@ release-testnet:
 	@make clean
 clean:
 	# Cleaning up
-	# rename main.py to electrum-dash
+	# rename main.py to electrum-zcash
 	@-rm ../../../main.py
 	# remove buildozer.spec
 	@-rm ../../../buildozer.spec

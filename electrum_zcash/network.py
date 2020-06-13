@@ -52,7 +52,6 @@ from . import blockchain
 from . import bitcoin
 from .constants import CHUNK_SIZE
 from .blockchain import Blockchain, HEADER_SIZE
-from .dash_net import DashNet
 from .interface import (Interface, serialize_server, deserialize_server,
                         RequestTimedOut, NetworkTimeout, BUCKET_NAME_OF_ONION_SERVERS)
 from .version import ELECTRUM_VERSION, PROTOCOL_VERSION
@@ -188,7 +187,7 @@ class TxBroadcastHashMismatch(TxBroadcastError):
     def get_message_for_gui(self):
         return "{}\n{}\n\n{}" \
             .format(_("The server returned an unexpected transaction ID when broadcasting the transaction."),
-                    _("Consider trying to connect to a different server, or updating Dash Electrum."),
+                    _("Consider trying to connect to a different server, or updating Electrum-Zcash."),
                     str(self))
 
 
@@ -196,7 +195,7 @@ class TxBroadcastServerReturnedError(TxBroadcastError):
     def get_message_for_gui(self):
         return "{}\n{}\n\n{}" \
             .format(_("The server returned an error when broadcasting the transaction."),
-                    _("Consider trying to connect to a different server, or updating Dash Electrum."),
+                    _("Consider trying to connect to a different server, or updating Electrum-Zcash."),
                     str(self))
 
 
@@ -204,7 +203,7 @@ class TxBroadcastUnknownError(TxBroadcastError):
     def get_message_for_gui(self):
         return "{}\n{}" \
             .format(_("Unknown error when broadcasting the transaction."),
-                    _("Consider trying to connect to a different server, or updating Dash Electrum."))
+                    _("Consider trying to connect to a different server, or updating Electrum-Zcash."))
 
 
 class UntrustedServerReturnedError(Exception):
@@ -243,7 +242,7 @@ class Network(Logger):
         self.config = SimpleConfig(config) if isinstance(config, dict) else config  # type: SimpleConfig
 
         # Autodetect and enable Tor proxy on Network init
-        self.tor_docs_uri = ('https://github.com/akhavr/electrum-dash/'
+        self.tor_docs_uri = ('https://github.com/akhavr/electrum-zcash/'
                              'blob/%s/docs/tor.md' % ELECTRUM_VERSION)
         self.tor_docs_title = 'Tor Setup Docs'
         self.tor_docs_uri_qt = ('<br><br><a href="%s">%s</a>' %
@@ -283,8 +282,6 @@ class Network(Logger):
         self.callback_lock = threading.Lock()
         self.recent_servers_lock = threading.RLock()       # <- re-entrant
         self.interfaces_lock = threading.Lock()            # for mutating/iterating self.interfaces
-        # protx code locks
-        self.protx_info_resp_lock = threading.Lock()
 
         self.server_peers = {}  # returned by interface (servers that the main interface knows about)
         self.recent_servers = self._read_recent_servers()  # note: needs self.recent_servers_lock
@@ -292,8 +289,6 @@ class Network(Logger):
         self.banner = ''
         self.donation_address = ''
         self.relay_fee = None  # type: Optional[int]
-        # List of all proposals on the network.
-        self.all_proposals = []
         # callbacks set by the GUI
         self.callbacks = defaultdict(list)      # note: needs self.callback_lock
 
@@ -314,15 +309,6 @@ class Network(Logger):
 
         # Dump network messages (all interfaces).  Set at runtime from the console.
         self.debug = False
-
-        # protx info responses data
-        self.protx_info_resp = []
-
-        # create DashNet
-        self.dash_net = DashNet(self, config)
-        # create MNList instance
-        from .protx_list import MNList
-        self.mn_list = MNList(self, config)
 
         self._set_status('disconnected')
 
@@ -479,12 +465,6 @@ class Network(Logger):
             value = self.config.mempool_fees
         elif key == 'servers':
             value = self.get_servers()
-        elif key == 'protx-info':
-            with self.protx_info_resp_lock:
-                if self.protx_info_resp:
-                    value = self.protx_info_resp.pop()
-                else:
-                    value = {}
         else:
             raise Exception('unexpected trigger key {}'.format(key))
         return value
@@ -654,7 +634,6 @@ class Network(Logger):
                 await self.switch_to_interface(server_str)
             else:
                 await self.switch_lagging_interface()
-        await self.dash_net.set_parameters()
 
     def _set_oneserver(self, oneserver: bool):
         self.num_server = NUM_TARGET_CONNECTED_SERVERS if not oneserver else 0
@@ -1046,98 +1025,11 @@ class Network(Logger):
         for substring in tx_verify_error_messages:
             if substring in server_msg:
                 return substring
-        # Dashd v0.13.1 specific errors
-        dashd_specific_error_messages = {
-            r"bad-qc-not-allowed",
-            r"bad-qc-missing",
-            r"bad-qc-block",
-            r"bad-qc-invalid-null",
-            r"bad-qc-dup",
-            r"bad-qc-height",
-            r"bad-qc-invalid",
-            r"bad-tx-payload",
-            r"bad-qc-dup",
-            r"bad-qc-premature",
-            r"bad-qc-version",
-            r"bad-qc-quorum-hash",
-            r"bad-qc-type",
-
-            r"bad-protx-addr",
-            r"bad-protx-addr-port",
-            r"bad-protx-sig",
-            r"bad-protx-inputs-hash",
-            r"bad-protx-type",
-            r"bad-protx-payload",
-            r"bad-protx-version",
-            r"bad-protx-mode",
-            r"bad-protx-key-null",
-            r"bad-protx-payee",
-            r"bad-protx-payee-dest",
-            r"bad-protx-payee-reuse",
-            r"bad-protx-operator-reward",
-            r"bad-protx-collateral",
-            r"bad-protx-collateral-dest",
-            r"bad-protx-collateral-pkh",
-            r"bad-protx-collateral-index",
-            r"bad-protx-collateral-reuse",
-            r"bad-protx-dup-addr",
-            r"bad-protx-dup-key",
-            r"bad-protx-key-not-same",
-            r"bad-protx-hash",
-            r"bad-protx-operator-payee",
-            r"bad-protx-reason",
-
-            r"bad-tx-type",
-            r"bad-tx-type-check",
-            r"bad-tx-type-proc",
-
-            r"bad-cbtx-type",
-            r"bad-cbtx-invalid",
-            r"bad-cbtx-payload",
-            r"bad-cbtx-version",
-            r"bad-cbtx-height",
-            r"bad-cbtx-mnmerkleroot",
-
-            r"bad-txns-payload-oversize",
-            r"bad-txns-type",
-            r"bad-txns-cb-type",
-            r"qc-not-allowed",
-            r"bad-txlockrequest",
-            r"tx-txlock-conflict",
-            r"tx-txlockreq-mempool-conflict",
-            r"txlockreq-tx-mempool-conflict",
-            r"protx-dup",
-            r"mempool min fee not met",
-            r"insufficient priority",
-            r"rate limited free transaction",
-            r"bad-txns-fee-negative",
-            r"bad-txns-BIP30",
-            r"bad-sb-start",
-            r"bad-blk-sigops",
-            r"bad-txns-nonfinal",
-            r"bad-cb-amount",
-            r"bad-cb-payee",
-            r"high-hash",
-            r"devnet-genesis",
-            r"bad-txnmrklroot",
-            r"bad-txns-duplicate",
-            r"bad-blk-length",
-            r"bad-cb-missing",
-            r"bad-cb-multiple",
-            r"conflict-tx-lock",
-            r"forked chain older than last checkpoint",
-            r"incorrect proof of work (DGW pre-fd-diffbitsork)",
-            r"bad-diffbits",
-            r"time-too-old",
-            r"time-too-new",
-            r"bad-cb-height",
-            r"bad-cb-type",
-            r"bad-prevblk",
-            r"Inputs unavailable",
-            r"Transaction check failed",
-            r"bad-version",
+        # Zcashd specific errors
+        zcashd_specific_error_messages = {
+            #FIXME need gather from zcash core
         }
-        for substring in dashd_specific_error_messages:
+        for substring in zcashd_specific_error_messages:
             if substring in server_msg:
                 return substring
         # otherwise:
@@ -1178,65 +1070,6 @@ class Network(Logger):
         if not is_hash256_str(sh):
             raise Exception(f"{repr(sh)} is not a scripthash")
         return await self.interface.session.send_request('blockchain.scripthash.get_balance', [sh])
-
-    @best_effort_reliable
-    @catch_server_exceptions
-    async def request_protx_diff(self, *, timeout=None) -> dict:
-        mn_list = self.mn_list
-        base_height = mn_list.protx_height
-
-        height = self.get_local_height()
-        if not height or height <= base_height:
-            return
-
-        activation_height = constants.net.DIP3_ACTIVATION_HEIGHT
-        if base_height <= 1:
-            if base_height == 0:  # on protx diff first allowed height is 1
-                base_height = 1
-            if height > activation_height:
-                height = activation_height + 1
-        elif height - base_height > CHUNK_SIZE:
-            height = mn_list.calc_max_height(base_height, height)
-
-        try:
-            params = (base_height, height)
-            mn_list.sent_protx_diff.put_nowait(params)
-        except asyncio.QueueFull:
-            self.logger.info('ignore excess protx diff request')
-            return
-        try:
-            err = None
-            s = self.interface.session
-            res = await s.send_request('protx.diff', params, timeout=timeout)
-        except Exception as e:
-            err = f'request_protx_diff(), params={params}: {repr(e)}'
-            res = None
-        self.trigger_callback('protx-diff', {'error': err,
-                                             'result': res,
-                                             'params': params})
-
-    @best_effort_reliable
-    @catch_server_exceptions
-    async def request_protx_info(self, protx_hash: str,*, timeout=None):
-        '''
-        Request detailed information about a deterministic masternode.
-
-        protx_hash: The hash of the initial ProRegTx
-        '''
-        if not is_hash256_str(protx_hash):
-            raise Exception(f"{repr(protx_hash)} is not a txid")
-        try:
-            err = None
-            res = await self.interface.session.send_request('protx.info',
-                                                            [protx_hash],
-                                                            timeout=timeout)
-        except Exception as e:
-            err = str(e)
-            res = None
-        with self.protx_info_resp_lock:
-            self.protx_info_resp.insert(0, {'error': err,
-                                            'result': res})
-        self.notify('protx-info')
 
     def blockchain(self) -> Blockchain:
         interface = self.interface
@@ -1322,7 +1155,6 @@ class Network(Logger):
                 # will NOT raise, and the group will keep the other tasks running
                 async with main_taskgroup as group:
                     await group.spawn(self._maintain_sessions())
-                    await group.spawn(self._gather_protx_info())
                     [await group.spawn(job) for job in self._jobs]
             except Exception as e:
                 self.logger.exception('')
@@ -1334,8 +1166,6 @@ class Network(Logger):
     def start(self, jobs: List=None):
         self._jobs = jobs or []
         asyncio.run_coroutine_threadsafe(self._start(), self.asyncio_loop)
-        self.dash_net.start()
-        self.mn_list.start()
 
     @log_exceptions
     async def _stop(self, full_shutdown=False):
@@ -1354,12 +1184,10 @@ class Network(Logger):
 
     def stop(self):
         assert self._loop_thread != threading.current_thread(), 'must not be called from network thread'
-        self.mn_list.stop()
         fut = asyncio.run_coroutine_threadsafe(self._stop(full_shutdown=True), self.asyncio_loop)
         try:
             fut.result(timeout=2)
         except (asyncio.TimeoutError, asyncio.CancelledError): pass
-        self.dash_net.stop()
 
     async def _ensure_there_is_a_main_interface(self):
         if self.is_connected():
@@ -1416,28 +1244,6 @@ class Network(Logger):
                 group = self.main_taskgroup
                 if not group or group._closed:
                     raise
-            await asyncio.sleep(0.1)
-
-    async def _gather_protx_info(self):
-        mn_list = self.mn_list
-        while mn_list.protx_loading:  # start after protx diffs loaded
-            await asyncio.sleep(1)
-        loop = self.asyncio_loop
-        get_hashes = await loop.run_in_executor(None, mn_list.process_info)
-        last_process_time = time.time()
-        while True:
-            if not get_hashes:
-                await asyncio.sleep(60)
-            for h in get_hashes:
-                try:
-                    await self.request_protx_info(h)
-                except Exception as e:
-                    self.logger.info(f'_gather_protx_info error {str(e)}')
-                if time.time() - last_process_time > 60:
-                    break
-                await asyncio.sleep(0.1)
-            get_hashes = await loop.run_in_executor(None, mn_list.process_info)
-            last_process_time = time.time()
             await asyncio.sleep(0.1)
 
     @classmethod

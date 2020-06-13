@@ -3,7 +3,7 @@
 import os
 
 
-apk_version = os.environ.get('DASH_ELECTRUM_APK_VERSION')
+apk_version = os.environ.get('ELECTRUM_ZCASH_APK_VERSION')
 android_arch = os.environ.get('APP_ANDROID_ARCH')
 apk_version_code = sum((map(lambda x: (100**(4-x[0]))*int(x[1]),
                             enumerate(apk_version.split('.')))))

@@ -41,14 +41,14 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from PyQt5.QtWidgets import (QVBoxLayout, QLabel, QGridLayout, QLineEdit,
                              QInputDialog)
 
-from electrum_dash.gui.qt.util import (EnterButton, Buttons, CloseButton,
+from electrum_zcash.gui.qt.util import (EnterButton, Buttons, CloseButton,
                                        OkButton, WindowModalDialog,
                                        get_parent_main_window)
 
-from electrum_dash.plugin import BasePlugin, hook
-from electrum_dash.paymentrequest import PaymentRequest
-from electrum_dash.i18n import _
-from electrum_dash.logging import Logger
+from electrum_zcash.plugin import BasePlugin, hook
+from electrum_zcash.paymentrequest import PaymentRequest
+from electrum_zcash.i18n import _
+from electrum_zcash.logging import Logger
 
 
 class Processor(threading.Thread, Logger):
@@ -82,7 +82,7 @@ class Processor(threading.Thread, Logger):
                 p = [p]
                 continue
             for item in p:
-                if item.get_content_type() == "application/dash-paymentrequest":
+                if item.get_content_type() == "application/zcash-paymentrequest":
                     pr_str = item.get_payload()
                     pr_str = base64.b64decode(pr_str)
                     self.on_receive(pr_str)
@@ -112,7 +112,7 @@ class Processor(threading.Thread, Logger):
         msg['Subject'] = message
         msg['To'] = recipient
         msg['From'] = self.username
-        part = MIMEBase('application', "dash-paymentrequest")
+        part = MIMEBase('application', "zcash-paymentrequest")
         part.set_payload(payment_request)
         encode_base64(part)
         part.add_header('Content-Disposition', 'attachment; filename="payreq.dash"')
@@ -177,7 +177,7 @@ class Plugin(BasePlugin):
         menu.addAction(_("Send via e-mail"), lambda: self.send(window, addr))
 
     def send(self, window, addr):
-        from electrum_dash import paymentrequest
+        from electrum_zcash import paymentrequest
         r = window.wallet.receive_requests.get(addr)
         message = r.get('memo', '')
         if r.get('signature'):

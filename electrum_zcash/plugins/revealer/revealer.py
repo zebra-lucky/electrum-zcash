@@ -3,8 +3,8 @@ import os
 from hashlib import sha256
 from typing import NamedTuple, Optional, Dict, Tuple
 
-from electrum_dash.plugin import BasePlugin
-from electrum_dash.util import to_bytes, bh2u, bfh
+from electrum_zcash.plugin import BasePlugin
+from electrum_zcash.util import to_bytes, bh2u, bfh
 
 from .hmac_drbg import DRBG
 

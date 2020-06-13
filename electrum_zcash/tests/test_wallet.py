@@ -7,15 +7,15 @@ from decimal import Decimal
 import time
 
 from io import StringIO
-from electrum_dash.storage import WalletStorage
-from electrum_dash.json_db import FINAL_SEED_VERSION
-from electrum_dash.wallet import (Abstract_Wallet, Standard_Wallet,
+from electrum_zcash.storage import WalletStorage
+from electrum_zcash.json_db import FINAL_SEED_VERSION
+from electrum_zcash.wallet import (Abstract_Wallet, Standard_Wallet,
                                   create_new_wallet,
                                   restore_wallet_from_text, Imported_Wallet)
-from electrum_dash.exchange_rate import ExchangeBase, FxThread
-from electrum_dash.util import TxMinedInfo
-from electrum_dash.bitcoin import COIN
-from electrum_dash.json_db import JsonDB
+from electrum_zcash.exchange_rate import ExchangeBase, FxThread
+from electrum_zcash.util import TxMinedInfo
+from electrum_zcash.bitcoin import COIN
+from electrum_zcash.json_db import JsonDB
 
 from . import SequentialTestCase
 

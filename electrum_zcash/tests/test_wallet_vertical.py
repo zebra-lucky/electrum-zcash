@@ -4,14 +4,14 @@ import shutil
 import tempfile
 from typing import Sequence
 
-from electrum_dash import storage, bitcoin, keystore
-from electrum_dash.transaction import Transaction
-from electrum_dash.simple_config import SimpleConfig
-from electrum_dash.address_synchronizer import TX_HEIGHT_UNCONFIRMED, TX_HEIGHT_UNCONF_PARENT
-from electrum_dash.wallet import sweep, Multisig_Wallet, Standard_Wallet, Imported_Wallet, restore_wallet_from_text
-from electrum_dash.util import bfh, bh2u
-from electrum_dash.transaction import TxOutput
-from electrum_dash.mnemonic import seed_type
+from electrum_zcash import storage, bitcoin, keystore
+from electrum_zcash.transaction import Transaction
+from electrum_zcash.simple_config import SimpleConfig
+from electrum_zcash.address_synchronizer import TX_HEIGHT_UNCONFIRMED, TX_HEIGHT_UNCONF_PARENT
+from electrum_zcash.wallet import sweep, Multisig_Wallet, Standard_Wallet, Imported_Wallet, restore_wallet_from_text
+from electrum_zcash.util import bfh, bh2u
+from electrum_zcash.transaction import TxOutput
+from electrum_zcash.mnemonic import seed_type
 
 from . import TestCaseForTestnet
 from . import SequentialTestCase

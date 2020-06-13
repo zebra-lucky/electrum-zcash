@@ -1,13 +1,13 @@
 import time
 from struct import pack
 
-from electrum_dash import ecc
-from electrum_dash.i18n import _
-from electrum_dash.util import UserCancelled, UserFacingException
-from electrum_dash.keystore import bip39_normalize_passphrase
-from electrum_dash.bip32 import BIP32Node, convert_bip32_path_to_list_of_uint32 as parse_path
-from electrum_dash.logging import Logger
-from electrum_dash.plugins.hw_wallet.plugin import OutdatedHwFirmwareException
+from electrum_zcash import ecc
+from electrum_zcash.i18n import _
+from electrum_zcash.util import UserCancelled, UserFacingException
+from electrum_zcash.keystore import bip39_normalize_passphrase
+from electrum_zcash.bip32 import BIP32Node, convert_bip32_path_to_list_of_uint32 as parse_path
+from electrum_zcash.logging import Logger
+from electrum_zcash.plugins.hw_wallet.plugin import OutdatedHwFirmwareException
 
 from trezorlib.client import TrezorClient
 from trezorlib.exceptions import TrezorFailure, Cancelled, OutdatedFirmwareError
@@ -101,8 +101,8 @@ class TrezorClientBase(Logger):
             return True
 
         try:
-            res = self.client.ping("electrum-dash pinging device")
-            assert res == "electrum-dash pinging device"
+            res = self.client.ping("electrum-zcash pinging device")
+            assert res == "electrum-zcash pinging device"
         except BaseException:
             return False
         return True
@@ -258,7 +258,7 @@ class TrezorClientBase(Logger):
             msg = _("Enter a passphrase to generate this wallet.  Each time "
                     "you use this wallet your {} will prompt you for the "
                     "passphrase.  If you forget the passphrase you cannot "
-                    "access the Dash coins in the wallet.").format(self.device)
+                    "access the Zcash coins in the wallet.").format(self.device)
         else:
             msg = _("Enter the passphrase to unlock this wallet:")
         passphrase = self.handler.get_passphrase(msg, self.creating_wallet)

@@ -3,19 +3,19 @@ import hashlib
 import sys
 import traceback
 
-from electrum_dash import constants
-from electrum_dash import ecc
-from electrum_dash.bitcoin import (TYPE_ADDRESS, int_to_hex, var_int,
+from electrum_zcash import constants
+from electrum_zcash import ecc
+from electrum_zcash.bitcoin import (TYPE_ADDRESS, int_to_hex, var_int,
                                    b58_address_to_hash160,
                                    hash160_to_b58_address)
-from electrum_dash.bip32 import BIP32Node
-from electrum_dash.i18n import _
-from electrum_dash.keystore import Hardware_KeyStore
-from electrum_dash.transaction import Transaction
-from electrum_dash.wallet import Standard_Wallet
-from electrum_dash.util import bfh, bh2u, versiontuple, UserFacingException
-from electrum_dash.base_wizard import ScriptTypeNotSupported
-from electrum_dash.logging import get_logger
+from electrum_zcash.bip32 import BIP32Node
+from electrum_zcash.i18n import _
+from electrum_zcash.keystore import Hardware_KeyStore
+from electrum_zcash.transaction import Transaction
+from electrum_zcash.wallet import Standard_Wallet
+from electrum_zcash.util import bfh, bh2u, versiontuple, UserFacingException
+from electrum_zcash.base_wizard import ScriptTypeNotSupported
+from electrum_zcash.logging import get_logger
 
 
 def setAlternateCoinVersions(self, regular, p2sh):
@@ -134,7 +134,7 @@ class btchip_dash(btchip):
 
         params = []
         if transaction.extra_data:
-            # Dash DIP2 extra data: By appending data to the 'lockTime' transfer we force the device into the
+            # Zcash DIP2 extra data: By appending data to the 'lockTime' transfer we force the device into the
             # BTCHIP_TRANSACTION_PROCESS_EXTRA mode, which gives us the opportunity to sneak with an additional
             # data block.
             if len(transaction.extra_data) > 255 - len(transaction.lockTime):
@@ -291,7 +291,7 @@ class Ledger_Client():
                 self.perform_hw1_preflight()
             except BTChipException as e:
                 if (e.sw == 0x6d00 or e.sw == 0x6700):
-                    raise UserFacingException(_("Device not in Dash mode")) from e
+                    raise UserFacingException(_("Device not in Zcash mode")) from e
                 raise e
             self.preflightDone = True
 

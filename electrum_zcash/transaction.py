@@ -32,6 +32,7 @@ import traceback
 import sys
 from typing import (Sequence, Union, NamedTuple, Tuple, Optional, Iterable,
                     Callable, List, Dict)
+from pyblake2 import blake2b
 
 from . import ecc, bitcoin, constants
 from .util import profiler, to_bytes, bh2u, bfh
@@ -42,8 +43,6 @@ from .bitcoin import (TYPE_ADDRESS, TYPE_PUBKEY, TYPE_SCRIPT, hash_160,
                       opcodes, add_number_to_script, base_decode)
 from .crypto import sha256d
 from .keystore import xpubkey_to_address, xpubkey_to_pubkey
-from .dash_tx import (ProTxBase, read_extra_payload, serialize_extra_payload,
-                      to_varbytes)
 from .logging import get_logger
 
 
@@ -52,6 +51,14 @@ _logger = get_logger(__name__)
 
 NO_SIGNATURE = 'ff'
 PARTIAL_TXN_HEADER_MAGIC = b'EPTF\xff'
+OVERWINTERED_VERSION_GROUP_ID = 0x03C48270
+OVERWINTER_BRANCH_ID = 0x5BA81B19
+SAPLING_VERSION_GROUP_ID = 0x892F2085
+SAPLING_BRANCH_ID = 0x76B809BB
+
+
+class TransactionVersionError(Exception):
+    """ Thrown when there's a problem with transaction versioning """
 
 
 class SerializationError(Exception):
@@ -98,11 +105,6 @@ class BCDataStream(object):
     def clear(self):
         self.input = None
         self.read_cursor = 0
-
-    def clear_and_set_bytes(self, _bytes):
-        self.read_cursor = 0
-        if self.input is None:
-            self.input = _bytes
 
     def write(self, _bytes):  # Initialize with string of _bytes
         if self.input is None:
@@ -483,30 +485,69 @@ def deserialize(raw: str, force_full_parse=False) -> dict:
     return read_vds(vds, d, full_parse, alone_data=True)
 
 
+def parse_join_split(vds):
+    d = {}
+    d['vpub_old'] = vds.read_uint64()
+    d['vpub_new'] = vds.read_uint64()
+    d['anchor'] = vds.read_bytes(32)
+    d['nullifiers'] = vds.read_bytes(64)
+    d['commitments'] = vds.read_bytes(64)
+    d['ephemeralKey'] = vds.read_bytes(32)
+    d['randomSeed'] = vds.read_bytes(32)
+    d['vmacs'] = vds.read_bytes(64)
+    d['zkproof'] = vds.read_bytes(296)
+    d['encCiphertexts'] = vds.read_bytes(1202)
+    return d
+
+
 def read_vds(vds, d, full_parse, alone_data=False):
-    # support DIP2 deserialization
     header = vds.read_uint32()
-    tx_type = header >> 16  # DIP2 tx type
-    if tx_type:
-        version = header & 0x0000ffff
-    else:
-        version = header
+    overwintered = True if header & 0x80000000 else False
+    version = header & 0x7FFFFFFF
 
-    if tx_type and version < 3:
-        version = header
-        tx_type = 0
+    if overwintered:
+        if version not in [3, 4]:
+            raise TransactionVersionError('Overwintered transaction'
+                                          ' with invalid version=%d' % version)
+        ver_group_id = vds.read_uint32()
+        if (version == 3 and ver_group_id != OVERWINTERED_VERSION_GROUP_ID or
+            version == 4 and ver_group_id != SAPLING_VERSION_GROUP_ID):
+            raise TransactionVersionError('Overwintered transaction with wrong'
+                                          ' versionGroupId=%X' % ver_group_id)
+        d['versionGroupId'] = ver_group_id
 
+    d['overwintered'] = overwintered
     d['version'] = version
-    d['tx_type'] = tx_type
+
     n_vin = vds.read_compact_size()
-    d['inputs'] = [parse_input(vds, full_parse=full_parse) for i in range(n_vin)]
+    d['inputs'] = [parse_input(vds) for i in range(n_vin)]
     n_vout = vds.read_compact_size()
     d['outputs'] = [parse_output(vds, i) for i in range(n_vout)]
     d['lockTime'] = vds.read_uint32()
-    if tx_type:
-        d['extra_payload'] = read_extra_payload(vds, tx_type)
-    else:
-        d['extra_payload'] = b''
+
+    if overwintered:
+        d['expiryHeight'] = vds.read_uint32()
+
+        if version == 4:
+            d['valueBalance'] = vds.read_int64()
+            n_sh_sp = vds.read_compact_size()
+            if n_sh_sp > 0:
+                d['shieldedSpends'] = vds.read_bytes(n_sh_sp*384)
+            n_sh_out = vds.read_compact_size()
+            if n_sh_out > 0:
+                d['shieldedOutputs'] = vds.read_bytes(n_sh_out*948)
+
+        n_js = vds.read_compact_size()
+        if n_js > 0:
+            if version == 3:
+                d['joinSplits'] = [parse_join_split(vds) for i in range(n_js)]
+            else:
+                d['joinSplits'] = vds.read_bytes(n_js*1698)
+            d['joinSplitPubKey'] = vds.read_bytes(32)
+            d['joinSplitSig'] = vds.read_bytes(64)
+            if version == 4:
+                d['bindingSig'] = vds.read_bytes(64)
+
     if alone_data and vds.can_read_more():
         raise SerializationError('extra junk at the end')
     return d
@@ -544,9 +585,17 @@ class Transaction:
         self._inputs = None
         self._outputs = None  # type: List[TxOutput]
         self.locktime = 0
-        self.version = 2
-        self.tx_type = 0
-        self.extra_payload = b''
+        self.version = 4
+        self.overwintered = True
+        self.versionGroupId = SAPLING_VERSION_GROUP_ID
+        self.expiryHeight = 0
+        self.valueBalance = 0
+        self.shieldedSpends = None
+        self.shieldedOutputs = None
+        self.joinSplits = None
+        self.joinSplitPubKey = None
+        self.joinSplitSig = None
+        self.bindingSig = None
         # by default we assume this is a partial txn;
         # this value will get properly set when deserializing
         self.is_partial_originally = True
@@ -597,7 +646,12 @@ class Transaction:
             sig = signatures[i]
             if sig in txin.get('signatures'):
                 continue
-            pre_hash = sha256d(bfh(self.serialize_preimage(i)))
+            if self.overwintered:
+                data = bfh(self.serialize_preimage(i))
+                person = b'ZcashSigHash' + SAPLING_BRANCH_ID.to_bytes(4, 'little')
+                pre_hash = blake2b(data, digest_size=32, person=person).digest()
+            else:
+                pre_hash = sha256d(bfh(self.serialize_preimage(i)))
             sig_string = ecc.sig_string_from_der_sig(bfh(sig[:-2]))
             for recid in range(4):
                 try:
@@ -638,8 +692,7 @@ class Transaction:
         assert not self.is_complete()
         self.raw = None
 
-    def deserialize(self, force_full_parse=False,
-                    extra_payload_for_json=False):
+    def deserialize(self, force_full_parse=False):
         if self.raw is None:
             return
             #self.raw = self.serialize()
@@ -647,13 +700,6 @@ class Transaction:
             return
         d = deserialize(self.raw, force_full_parse)
         res = self.set_data_from_dict(d)
-        if extra_payload_for_json:
-            extra_payload = self.extra_payload
-            if isinstance(extra_payload, ProTxBase):
-                extra_payload_json = extra_payload._asdict()
-            else:
-                extra_payload_json = bh2u(extra_payload)
-            res.update({'extra_payload': extra_payload_json})
         return res
 
     def set_data_from_dict(self, d):
@@ -661,33 +707,27 @@ class Transaction:
         self._outputs = [TxOutput(x['type'], x['address'], x['value']) for x in d['outputs']]
         self.locktime = d['lockTime']
         self.version = d['version']
-        self.tx_type = d['tx_type']
-        self.extra_payload = d['extra_payload']
+        self.overwintered = d['overwintered']
+        self.versionGroupId = d.get('versionGroupId')
+        self.expiryHeight = d.get('expiryHeight', 0)
+        self.valueBalance = d.get('valueBalance', 0)
+        self.shieldedSpends = d.get('shieldedSpends')
+        self.shieldedOutputs = d.get('shieldedOutputs')
+        self.joinSplits = d.get('joinSplits')
+        self.joinSplitPubKey = d.get('joinSplitPubKey')
+        self.joinSplitSig = d.get('joinSplitSig')
+        self.bindingSig = d.get('bindingSig')
         self.is_partial_originally = d['partial']
         return d
 
     @classmethod
-    def read_vds(cls, vds, alone_data=False):
-        d = {}
-        d['partial'] = full_parse = False
-        d = read_vds(vds, d, full_parse, alone_data)
-        tx = cls(None)
-        tx.set_data_from_dict(d)
-        return tx
-
-    @classmethod
-    def from_io(klass, inputs, outputs, locktime=0, version=None,
-                tx_type=0, extra_payload=b''):
+    def from_io(klass, inputs, outputs, locktime=0, version=None):
         self = klass(None)
         self._inputs = inputs
         self._outputs = outputs
         self.locktime = locktime
         if version is not None:
             self.version = version
-        if tx_type:
-            self.version = 3
-            self.tx_type = tx_type
-            self.extra_payload = extra_payload
         self.BIP69_sort()
         return self
 
@@ -864,22 +904,59 @@ class Transaction:
         s += script
         return s
 
+    def serialize_join_split(self, js):
+        s = int_to_hex(js['vpub_old'], 8)
+        s += int_to_hex(js['vpub_new'], 8)
+        s += js['anchor']
+        s += js['nullifiers']
+        s += js['commitments']
+        s += js['ephemeralKey']
+        s += js['randomSeed']
+        s += js['vmacs']
+        s += js['zkproof']
+        s += js['encCiphertexts']
+        return s
+
     def serialize_preimage(self, txin_index: int) -> str:
+        overwintered = self.overwintered
+        version = self.version
         nHashType = int_to_hex(1, 4)  # SIGHASH_ALL
         nLocktime = int_to_hex(self.locktime, 4)
         inputs = self.inputs()
         outputs = self.outputs()
-        txin = inputs[txin_index]
-        txins = var_int(len(inputs)) + ''.join(self.serialize_input(txin, self.get_preimage_script(txin) if txin_index==k else '')
-                                               for k, txin in enumerate(inputs))
-        txouts = var_int(len(outputs)) + ''.join(self.serialize_output(o) for o in outputs)
-        if self.tx_type:
-            uVersion = int_to_hex(self.version, 2)
-            uTxType = int_to_hex(self.tx_type, 2)
-            vExtra = bh2u(to_varbytes(serialize_extra_payload(self)))
-            preimage = uVersion + uTxType + txins + txouts + nLocktime + vExtra + nHashType
-        else:
-            nVersion = int_to_hex(self.version, 4)
+        if overwintered:
+            nHeader = int_to_hex(0x80000000 | version, 4)
+            nVersionGroupId = int_to_hex(self.versionGroupId, 4)
+            s_prevouts = bfh(''.join(self.serialize_outpoint(txin) for txin in inputs))
+            hashPrevouts = blake2b(s_prevouts, digest_size=32, person=b'ZcashPrevoutHash').hexdigest()
+            s_sequences = bfh(''.join(int_to_hex(txin.get('sequence', 0xffffffff - 1), 4) for txin in inputs))
+            hashSequence = blake2b(s_sequences, digest_size=32, person=b'ZcashSequencHash').hexdigest()
+            s_outputs = bfh(''.join(self.serialize_output(o) for o in outputs))
+            hashOutputs = blake2b(s_outputs, digest_size=32, person=b'ZcashOutputsHash').hexdigest()
+            joinSplits = self.joinSplits
+            hashJoinSplits = '00'*32
+            hashShieldedSpends = '00'*32
+            hashShieldedOutputs = '00'*32
+            nExpiryHeight = int_to_hex(self.expiryHeight, 4)
+            nValueBalance = int_to_hex(self.valueBalance, 8)
+
+            txin = inputs[txin_index]
+
+            preimage_script = self.get_preimage_script(txin)
+            scriptCode = var_int(len(preimage_script) // 2) + preimage_script
+            preimage = (
+                nHeader + nVersionGroupId + hashPrevouts + hashSequence + hashOutputs
+                + hashJoinSplits + hashShieldedSpends + hashShieldedOutputs + nLocktime
+                + nExpiryHeight + nValueBalance + nHashType
+                + self.serialize_outpoint(txin)
+                + scriptCode
+                + int_to_hex(txin['value'], 8)
+                + int_to_hex(txin.get('sequence', 0xffffffff - 1), 4)
+            )
+         else:
+            nVersion = int_to_hex(version, 4)
+            txins = var_int(len(inputs)) + ''.join(self.serialize_input(txin, self.get_preimage_script(txin) if txin_index==k else '') for k, txin in enumerate(inputs))
+            txouts = var_int(len(outputs)) + ''.join(self.serialize_output(o) for o in outputs)
             preimage = nVersion + txins + txouts + nLocktime + nHashType
         return preimage
 
@@ -895,18 +972,20 @@ class Transaction:
 
     def serialize_to_network(self, estimate_size=False):
         self.deserialize()
+        nVersion = int_to_hex(self.version, 4)
         nLocktime = int_to_hex(self.locktime, 4)
         inputs = self.inputs()
         outputs = self.outputs()
         txins = var_int(len(inputs)) + ''.join(self.serialize_input(txin, self.input_script(txin, estimate_size)) for txin in inputs)
         txouts = var_int(len(outputs)) + ''.join(self.serialize_output(o) for o in outputs)
-        if self.tx_type:
-            uVersion = int_to_hex(self.version, 2)
-            uTxType = int_to_hex(self.tx_type, 2)
-            vExtra = bh2u(to_varbytes(serialize_extra_payload(self)))
-            return uVersion + uTxType + txins + txouts + nLocktime + vExtra
+        if self.overwintered:
+            nVersion = int_to_hex(0x80000000 | self.version, 4)
+            nVersionGroupId = int_to_hex(self.versionGroupId, 4)
+            nExpiryHeight = int_to_hex(self.expiryHeight, 4)
+            nValueBalance = int_to_hex(self.valueBalance, 8)
+            return (nVersion + nVersionGroupId + txins + txouts + nLocktime
+                    + nExpiryHeight + nValueBalance + '00' + '00' + '00')
         else:
-            nVersion = int_to_hex(self.version, 4)
             return nVersion + txins + txouts + nLocktime
 
     def txid(self):
@@ -1020,7 +1099,12 @@ class Transaction:
         return signed_txins_cnt
 
     def sign_txin(self, txin_index, privkey_bytes) -> str:
-        pre_hash = sha256d(bfh(self.serialize_preimage(txin_index)))
+        if self.overwintered:
+            data = bfh(self.serialize_preimage(txin_index))
+            person = b'ZcashSigHash' + SAPLING_BRANCH_ID.to_bytes(4, 'little')
+            pre_hash = blake2b(data, digest_size=32, person=person).digest()
+        else:
+            pre_hash = sha256d(bfh(self.serialize_preimage(txin_index)))
         privkey = ecc.ECPrivkey(privkey_bytes)
         sig = privkey.sign_transaction(pre_hash)
         sig = bh2u(sig) + '01'

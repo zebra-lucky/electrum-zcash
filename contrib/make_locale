@@ -4,12 +4,12 @@ import os.path
 import tempfile
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.chdir(os.path.join('..', 'electrum_dash'))
+os.chdir(os.path.join('..', 'electrum_zcash'))
 
 # Get fresh translations
 clonetmp = tempfile.mkdtemp()
 os.system("git clone "
-          "https://github.com/akhavr/electrum-dash-locale "
+          "https://github.com/akhavr/electrum-zcash-locale "
           "%s" % clonetmp)
 os.system("rm -rf ./locale")
 os.system("mv %s/locale ." % clonetmp)

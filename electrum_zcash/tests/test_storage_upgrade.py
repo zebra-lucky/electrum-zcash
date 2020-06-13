@@ -2,9 +2,9 @@ import shutil
 import tempfile
 import os
 
-from electrum_dash.storage import WalletStorage
-from electrum_dash.wallet import Wallet
-from electrum_dash import constants
+from electrum_zcash.storage import WalletStorage
+from electrum_zcash.wallet import Wallet
+from electrum_zcash import constants
 
 from .test_wallet import WalletTestCase
 
@@ -275,8 +275,8 @@ class TestStorageUpgrade(WalletTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        from electrum_dash.plugin import Plugins
-        from electrum_dash.simple_config import SimpleConfig
+        from electrum_zcash.plugin import Plugins
+        from electrum_zcash.simple_config import SimpleConfig
 
         cls.electrum_path = tempfile.mkdtemp()
         config = SimpleConfig({'electrum_path': cls.electrum_path})

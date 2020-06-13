@@ -2,15 +2,15 @@ from binascii import hexlify, unhexlify
 import traceback
 import sys
 
-from electrum_dash.util import bfh, bh2u, versiontuple, UserCancelled, UserFacingException
-from electrum_dash.bitcoin import TYPE_ADDRESS, TYPE_SCRIPT
-from electrum_dash.bip32 import BIP32Node
-from electrum_dash import constants
-from electrum_dash.i18n import _
-from electrum_dash.plugin import Device
-from electrum_dash.transaction import deserialize, Transaction
-from electrum_dash.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-from electrum_dash.base_wizard import ScriptTypeNotSupported
+from electrum_zcash.util import bfh, bh2u, versiontuple, UserCancelled, UserFacingException
+from electrum_zcash.bitcoin import TYPE_ADDRESS, TYPE_SCRIPT
+from electrum_zcash.bip32 import BIP32Node
+from electrum_zcash import constants
+from electrum_zcash.i18n import _
+from electrum_zcash.plugin import Device
+from electrum_zcash.transaction import deserialize, Transaction
+from electrum_zcash.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
+from electrum_zcash.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 from ..hw_wallet.plugin import is_any_tx_output_on_change_branch, trezor_validate_op_return_output_and_get_data
@@ -159,7 +159,7 @@ class SafeTPlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "Dash Testnet" if constants.net.TESTNET else "Dash"
+        return "Zcash Testnet" if constants.net.TESTNET else "Zcash"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method

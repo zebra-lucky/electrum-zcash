@@ -7,11 +7,11 @@ from typing import Union
 
 import base64
 
-from electrum_dash.plugin import BasePlugin, hook
-from electrum_dash.crypto import aes_encrypt_with_iv, aes_decrypt_with_iv
-from electrum_dash.i18n import _
-from electrum_dash.util import log_exceptions, ignore_exceptions, make_aiohttp_session
-from electrum_dash.network import Network
+from electrum_zcash.plugin import BasePlugin, hook
+from electrum_zcash.crypto import aes_encrypt_with_iv, aes_decrypt_with_iv
+from electrum_zcash.i18n import _
+from electrum_zcash.util import log_exceptions, ignore_exceptions, make_aiohttp_session
+from electrum_zcash.network import Network
 
 
 class ErrorConnectingServer(Exception):

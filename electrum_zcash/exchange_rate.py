@@ -150,7 +150,7 @@ class BitcoinAverage(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('apiv2.bitcoinaverage.com',
-                                   '/indices/local/ticker/DASH%s' % ccy)
+                                   '/indices/local/ticker/Zcash%s' % ccy)
         return {ccy: Decimal(json['last'])}
 
 
@@ -158,7 +158,7 @@ class Bittrex(ExchangeBase):
     async def get_rates(self, ccy):
         json = await self.get_json('bittrex.com',
                                    '/api/v1.1/public/'
-                                   'getticker?market=%s-DASH' % ccy)
+                                   'getticker?market=%s-Zcash' % ccy)
         quote_currencies = {}
         if not json.get('success', False):
             return quote_currencies
@@ -171,7 +171,7 @@ class Poloniex(ExchangeBase):
     async def get_rates(self, ccy):
         json = await self.get_json('poloniex.com', '/public?command=returnTicker')
         quote_currencies = {}
-        dash_ticker = json.get('BTC_DASH')
+        dash_ticker = json.get('BTC_Zcash')
         quote_currencies['BTC'] = Decimal(dash_ticker['last'])
         return quote_currencies
 

@@ -8,18 +8,18 @@ from decimal import Decimal
 import threading
 import asyncio
 
-from electrum_dash.bitcoin import TYPE_ADDRESS
-from electrum_dash.dash_ps import (PSPossibleDoubleSpendError,
+from electrum_zcash.bitcoin import TYPE_ADDRESS
+from electrum_zcash.dash_ps import (PSPossibleDoubleSpendError,
                                    PSSpendToPSAddressesError)
-from electrum_dash.storage import WalletStorage
-from electrum_dash.wallet import Wallet, InternalAddressCorruption
-from electrum_dash.paymentrequest import InvoiceStore
-from electrum_dash.util import profiler, InvalidPassword, send_exception_to_crash_reporter
-from electrum_dash.plugin import run_hook
-from electrum_dash.util import format_satoshis, format_satoshis_plain, format_fee_satoshis
-from electrum_dash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
-from electrum_dash import blockchain
-from electrum_dash.network import (Network, TxBroadcastError,
+from electrum_zcash.storage import WalletStorage
+from electrum_zcash.wallet import Wallet, InternalAddressCorruption
+from electrum_zcash.paymentrequest import InvoiceStore
+from electrum_zcash.util import profiler, InvalidPassword, send_exception_to_crash_reporter
+from electrum_zcash.plugin import run_hook
+from electrum_zcash.util import format_satoshis, format_satoshis_plain, format_fee_satoshis
+from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum_zcash import blockchain
+from electrum_zcash.network import (Network, TxBroadcastError,
                                    BestEffortRequestFailed, deserialize_proxy)
 from .i18n import _
 
@@ -36,10 +36,10 @@ from kivy.metrics import inch
 from kivy.lang import Builder
 
 ## lazy imports for factory so that widgets can be used in kv
-#Factory.register('InstallWizard', module='electrum_dash.gui.kivy.uix.dialogs.installwizard')
-#Factory.register('InfoBubble', module='electrum_dash.gui.kivy.uix.dialogs')
-#Factory.register('OutputList', module='electrum_dash.gui.kivy.uix.dialogs')
-#Factory.register('OutputItem', module='electrum_dash.gui.kivy.uix.dialogs')
+#Factory.register('InstallWizard', module='electrum_zcash.gui.kivy.uix.dialogs.installwizard')
+#Factory.register('InfoBubble', module='electrum_zcash.gui.kivy.uix.dialogs')
+#Factory.register('OutputList', module='electrum_zcash.gui.kivy.uix.dialogs')
+#Factory.register('OutputItem', module='electrum_zcash.gui.kivy.uix.dialogs')
 
 from .uix.dialogs.installwizard import InstallWizard
 from .uix.dialogs import InfoBubble, crash_reporter
@@ -57,31 +57,31 @@ util = False
 
 # register widget cache for keeping memory down timeout to forever to cache
 # the data
-Cache.register('electrum_dash_widgets', timeout=0)
+Cache.register('electrum_zcash_widgets', timeout=0)
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 
-Factory.register('TabbedCarousel', module='electrum_dash.gui.kivy.uix.screens')
+Factory.register('TabbedCarousel', module='electrum_zcash.gui.kivy.uix.screens')
 
 # Register fonts without this you won't be able to use bold/italic...
 # inside markup.
 from kivy.core.text import Label
 Label.register('Roboto',
-               'electrum_dash/gui/kivy/data/fonts/Roboto.ttf',
-               'electrum_dash/gui/kivy/data/fonts/Roboto.ttf',
-               'electrum_dash/gui/kivy/data/fonts/Roboto-Bold.ttf',
-               'electrum_dash/gui/kivy/data/fonts/Roboto-Bold.ttf')
+               'electrum_zcash/gui/kivy/data/fonts/Roboto.ttf',
+               'electrum_zcash/gui/kivy/data/fonts/Roboto.ttf',
+               'electrum_zcash/gui/kivy/data/fonts/Roboto-Bold.ttf',
+               'electrum_zcash/gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from electrum_dash.util import (base_units, NoDynamicFeeEstimates, decimal_point_to_base_unit_name,
+from electrum_zcash.util import (base_units, NoDynamicFeeEstimates, decimal_point_to_base_unit_name,
                                 base_unit_name_to_decimal_point, NotEnoughFunds, UnknownBaseUnit,
                                 DECIMAL_POINT_DEFAULT)
 
 
-ATLAS_ICON = 'atlas://electrum_dash/gui/kivy/theming/light/%s'
+ATLAS_ICON = 'atlas://electrum_zcash/gui/kivy/theming/light/%s'
 
 
 class ElectrumWindow(App):
@@ -134,7 +134,7 @@ class ElectrumWindow(App):
         from .uix.dialogs.choice_dialog import ChoiceDialog
         protocol = 's'
         def cb2(host):
-            from electrum_dash import constants
+            from electrum_zcash import constants
             pp = servers.get(host, constants.net.DEFAULT_PORTS)
             port = pp.get(protocol, '')
             popup.ids.host.text = host
@@ -295,7 +295,7 @@ class ElectrumWindow(App):
 
         App.__init__(self)#, **kwargs)
 
-        title = _('Dash Electrum App')
+        title = _('Electrum-Zcash App')
         self.electrum_config = config = kwargs.get('config', None)
         self.language = config.get('language', 'en')
         self.network = network = kwargs.get('network', None)  # type: Network
@@ -356,7 +356,7 @@ class ElectrumWindow(App):
             self.send_screen.do_clear()
 
     def on_qr(self, data):
-        from electrum_dash.bitcoin import base_decode, is_address
+        from electrum_zcash.bitcoin import base_decode, is_address
         data = data.strip()
         if is_address(data):
             self.set_URI(data)
@@ -365,8 +365,8 @@ class ElectrumWindow(App):
             self.set_URI(data)
             return
         # try to decode transaction
-        from electrum_dash.transaction import Transaction
-        from electrum_dash.util import bh2u
+        from electrum_zcash.transaction import Transaction
+        from electrum_zcash.util import bh2u
         try:
             text = bh2u(base_decode(data, None, base=43))
             tx = Transaction(text)
@@ -403,13 +403,13 @@ class ElectrumWindow(App):
         self.receive_screen.screen.address = addr
 
     def show_pr_details(self, req, status, is_invoice):
-        from electrum_dash.util import format_time
+        from electrum_zcash.util import format_time
         requestor = req.get('requestor')
         exp = req.get('exp')
         memo = req.get('memo')
         amount = req.get('amount')
         fund = req.get('fund')
-        popup = Builder.load_file('electrum_dash/gui/kivy/uix/ui_screens/invoice.kv')
+        popup = Builder.load_file('electrum_zcash/gui/kivy/uix/ui_screens/invoice.kv')
         popup.is_invoice = is_invoice
         popup.amount = amount
         popup.requestor = requestor if is_invoice else req.get('address')
@@ -425,10 +425,10 @@ class ElectrumWindow(App):
         popup.open()
 
     def show_addr_details(self, req, status):
-        from electrum_dash.util import format_time
+        from electrum_zcash.util import format_time
         fund = req.get('fund')
         isaddr = 'y'
-        popup = Builder.load_file('electrum_dash/gui/kivy/uix/ui_screens/invoice.kv')
+        popup = Builder.load_file('electrum_zcash/gui/kivy/uix/ui_screens/invoice.kv')
         popup.isaddr = isaddr
         popup.is_invoice = False
         popup.status = status
@@ -520,7 +520,7 @@ class ElectrumWindow(App):
         currentActivity.startActivity(it)
 
     def build(self):
-        return Builder.load_file('electrum_dash/gui/kivy/main.kv')
+        return Builder.load_file('electrum_zcash/gui/kivy/main.kv')
 
     def _pause(self):
         if platform == 'android':
@@ -586,7 +586,7 @@ class ElectrumWindow(App):
         popup = Popup(title='Warning', title_align='center',
                       content=warn_box, auto_dismiss=False)
 
-        img_error = 'atlas://electrum_dash/gui/kivy/theming/light/error'
+        img_error = 'atlas://electrum_zcash/gui/kivy/theming/light/error'
         warn_img = Image(source=img_error, size_hint_y=0.15)
         warn_box.add_widget(warn_img)
         warn_msg_label = Label(text=self.network.tor_warn_msg,
@@ -631,7 +631,7 @@ class ElectrumWindow(App):
                     warn_box.remove_widget(open_orbot_btn)
                     warn_box.remove_widget(detect_tor_btn)
                     warn_box.remove_widget(docs_btn)
-                    img_ok = ('atlas://electrum_dash/gui/kivy/theming/'
+                    img_ok = ('atlas://electrum_zcash/gui/kivy/theming/'
                               'light/confirmed')
                     warn_img.source = img_ok
                     warn_msg_label.text = _('Tor is detected')
@@ -773,9 +773,9 @@ class ElectrumWindow(App):
         self._settings_dialog.open()
 
     def dash_net_dialog(self):
-        from .uix.dialogs.dash_net import DashNetDialog
+        from .uix.dialogs.dash_net import ZcashNetDialog
         if self._dash_net_dialog is None:
-            self._dash_net_dialog = DashNetDialog(self)
+            self._dash_net_dialog = ZcashNetDialog(self)
         self._dash_net_dialog.update()
         self._dash_net_dialog.open()
 
@@ -798,7 +798,7 @@ class ElectrumWindow(App):
             d = WalletDialog()
             d.open()
         elif name == 'status':
-            popup = Builder.load_file('electrum_dash/gui/kivy/uix/ui_screens/'+name+'.kv')
+            popup = Builder.load_file('electrum_zcash/gui/kivy/uix/ui_screens/'+name+'.kv')
             master_public_keys_layout = popup.ids.master_public_keys
             for xpub in self.wallet.get_master_public_keys()[1:]:
                 master_public_keys_layout.add_widget(TopLabel(text=_('Master Public Key')))
@@ -808,7 +808,7 @@ class ElectrumWindow(App):
                 master_public_keys_layout.add_widget(ref)
             popup.open()
         else:
-            popup = Builder.load_file('electrum_dash/gui/kivy/uix/ui_screens/'+name+'.kv')
+            popup = Builder.load_file('electrum_zcash/gui/kivy/uix/ui_screens/'+name+'.kv')
             popup.open()
 
     @profiler
@@ -824,13 +824,13 @@ class ElectrumWindow(App):
 
         #setup lazy imports for mainscreen
         Factory.register('AnimatedPopup',
-                         module='electrum_dash.gui.kivy.uix.dialogs')
+                         module='electrum_zcash.gui.kivy.uix.dialogs')
         Factory.register('QRCodeWidget',
-                         module='electrum_dash.gui.kivy.uix.qrcodewidget')
+                         module='electrum_zcash.gui.kivy.uix.qrcodewidget')
 
         # preload widgets. Remove this if you want to load the widgets on demand
-        #Cache.append('electrum_dash_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
-        #Cache.append('electrum_dash_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
+        #Cache.append('electrum_zcash_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
+        #Cache.append('electrum_zcash_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
 
         # load and focus the ui
         self.root.manager = self.root.ids['manager']
@@ -843,9 +843,9 @@ class ElectrumWindow(App):
         self.requests_screen = None
         self.address_screen = None
         if self.testnet:
-            self.icon = 'electrum_dash/gui/icons/electrum-dash-testnet.png'
+            self.icon = 'electrum_zcash/gui/icons/electrum-zcash-testnet.png'
         else:
-            self.icon = 'electrum_dash/gui/icons/electrum-dash.png'
+            self.icon = 'electrum_zcash/gui/icons/electrum-zcash.png'
         self.root.ids.ps_button.icon = self.ps_icon()
         self.tabs = self.root.ids['tabs']
 
@@ -1046,7 +1046,7 @@ class ElectrumWindow(App):
             self._trigger_update_status()
 
     def get_max_amount(self, is_ps=False):
-        from electrum_dash.transaction import TxOutput
+        from electrum_zcash.transaction import TxOutput
         if run_hook('abort_send', self):
             return ''
         min_rounds = None if not is_ps else self.wallet.psman.mix_rounds
@@ -1099,8 +1099,8 @@ class ElectrumWindow(App):
                 from plyer import notification
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
-            notification.notify('Dash Electrum', message,
-                            app_icon=icon, app_name='Dash Electrum')
+            notification.notify('Electrum-Zcash', message,
+                            app_icon=icon, app_name='Electrum-Zcash')
         except ImportError:
             Logger.Error('Notification: needs plyer; `sudo python3 -m pip install plyer`')
 
@@ -1146,7 +1146,7 @@ class ElectrumWindow(App):
             Clock.schedule_once(lambda dt: self.show_info(_('Text copied to clipboard.\nTap again to display it as QR code.')))
 
     def show_error(self, error, width='200dp', pos=None, arrow_pos=None,
-        exit=False, icon='atlas://electrum_dash/gui/kivy/theming/light/error', duration=0,
+        exit=False, icon='atlas://electrum_zcash/gui/kivy/theming/light/error', duration=0,
         modal=False):
         ''' Show an error Message Bubble.
         '''
@@ -1158,7 +1158,7 @@ class ElectrumWindow(App):
         exit=False, duration=0, modal=False):
         ''' Show an Info Message Bubble.
         '''
-        self.show_error(error, icon='atlas://electrum_dash/gui/kivy/theming/light/important',
+        self.show_error(error, icon='atlas://electrum_zcash/gui/kivy/theming/light/important',
             duration=duration, modal=modal, exit=exit, pos=pos,
             arrow_pos=arrow_pos)
 
@@ -1198,7 +1198,7 @@ class ElectrumWindow(App):
             info_bubble.show_arrow = False
             img.allow_stretch = True
             info_bubble.dim_background = True
-            info_bubble.background_image = 'atlas://electrum_dash/gui/kivy/theming/light/card'
+            info_bubble.background_image = 'atlas://electrum_zcash/gui/kivy/theming/light/card'
         else:
             info_bubble.fs = False
             info_bubble.icon = icon

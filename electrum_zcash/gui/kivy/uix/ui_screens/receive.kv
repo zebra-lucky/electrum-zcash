@@ -1,8 +1,8 @@
-#:import _ electrum_dash.gui.kivy.i18n._
+#:import _ electrum_zcash.gui.kivy.i18n._
 #:import Decimal decimal.Decimal
 #:set btc_symbol chr(171)
 #:set mbtc_symbol chr(187)
-#:set font_light 'electrum_dash/gui/kivy/data/fonts/Roboto-Condensed.ttf'
+#:set font_light 'electrum_zcash/gui/kivy/data/fonts/Roboto-Condensed.ttf'
 
 
 
@@ -77,13 +77,13 @@ ReceiveScreen:
                 height: blue_bottom.item_height
                 spacing: '5dp'
                 Image:
-                    source: 'atlas://electrum_dash/gui/kivy/theming/light/globe'
+                    source: 'atlas://electrum_zcash/gui/kivy/theming/light/globe'
                     size_hint: None, None
                     size: '22dp', '22dp'
                     pos_hint: {'center_y': .5}
                 BlueButton:
                     id: address_label
-                    text: s.address if s.address else _('Dash Address')
+                    text: s.address if s.address else _('Zcash Address')
                     shorten: True
                     on_release: Clock.schedule_once(lambda dt: app.addresses_dialog(s))
             CardSeparator:
@@ -94,7 +94,7 @@ ReceiveScreen:
                 height: blue_bottom.item_height
                 spacing: '5dp'
                 Image:
-                    source: 'atlas://electrum_dash/gui/kivy/theming/light/calculator'
+                    source: 'atlas://electrum_zcash/gui/kivy/theming/light/calculator'
                     opacity: 0.7
                     size_hint: None, None
                     size: '22dp', '22dp'
@@ -114,7 +114,7 @@ ReceiveScreen:
                 height: blue_bottom.item_height
                 spacing: '5dp'
                 Image:
-                    source: 'atlas://electrum_dash/gui/kivy/theming/light/pen'
+                    source: 'atlas://electrum_zcash/gui/kivy/theming/light/pen'
                     size_hint: None, None
                     size: '22dp', '22dp'
                     pos_hint: {'center_y': .5}
@@ -126,7 +126,7 @@ ReceiveScreen:
             size_hint: 1, None
             height: '48dp'
             IconButton:
-                icon: 'atlas://electrum_dash/gui/kivy/theming/light/save'
+                icon: 'atlas://electrum_zcash/gui/kivy/theming/light/save'
                 size_hint: 0.6, None
                 height: '48dp'
                 on_release: s.parent.do_save()
@@ -141,7 +141,7 @@ ReceiveScreen:
                 height: '48dp'
                 on_release: s.parent.do_copy()
             IconButton:
-                icon: 'atlas://electrum_dash/gui/kivy/theming/light/share'
+                icon: 'atlas://electrum_zcash/gui/kivy/theming/light/share'
                 size_hint: 0.6, None
                 height: '48dp'
                 on_release: s.parent.do_share()

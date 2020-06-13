@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source ./contrib/dash/travis/electrum_dash_version_env.sh;
-echo wine build version is $DASH_ELECTRUM_VERSION
+source ./contrib/zcash/travis/electrum_zcash_version_env.sh;
+echo wine build version is $ELECTRUM_ZCASH_VERSION
 
 mv /opt/zbarw $WINEPREFIX/drive_c/
 
@@ -11,14 +11,14 @@ mv /opt/libsecp256k1/libsecp256k1-0.dll \
    /opt/libsecp256k1/libsecp256k1.dll
 mv /opt/libsecp256k1 $WINEPREFIX/drive_c/
 
-cd $WINEPREFIX/drive_c/electrum-dash
+cd $WINEPREFIX/drive_c/electrum-zcash
 
 rm -rf build
-rm -rf dist/electrum-dash
+rm -rf dist/electrum-zcash
 
-cp contrib/dash/deterministic.spec .
-cp contrib/dash/pyi_runtimehook.py .
-cp contrib/dash/pyi_tctl_runtimehook.py .
+cp contrib/zcash/deterministic.spec .
+cp contrib/zcash/pyi_runtimehook.py .
+cp contrib/zcash/pyi_tctl_runtimehook.py .
 
 wine python -m pip install --no-warn-script-location -r contrib/deterministic-build/requirements.txt
 wine python -m pip install --no-warn-script-location -r contrib/deterministic-build/requirements-hw.txt
@@ -26,7 +26,7 @@ wine python -m pip install --no-warn-script-location -r contrib/deterministic-bu
 wine python -m pip install --no-warn-script-location PyInstaller==3.6 --no-use-pep517
 
 wine pyinstaller --clean -y \
-    --name electrum-dash-$DASH_ELECTRUM_VERSION.exe \
+    --name electrum-zcash-$ELECTRUM_ZCASH_VERSION.exe \
     deterministic.spec
 
 if [[ $WINEARCH == win32 ]]; then
@@ -36,6 +36,6 @@ else
 fi
 
 wine "$NSIS_EXE" /NOCD -V3 \
-    /DPRODUCT_VERSION=$DASH_ELECTRUM_VERSION \
+    /DPRODUCT_VERSION=$ELECTRUM_ZCASH_VERSION \
     /DWINEARCH=$WINEARCH \
-    contrib/dash/electrum-dash.nsi
+    contrib/zcash/electrum-zcash.nsi

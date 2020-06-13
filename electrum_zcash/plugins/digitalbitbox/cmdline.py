@@ -1,4 +1,4 @@
-from electrum_dash.plugin import hook
+from electrum_zcash.plugin import hook
 from .digitalbitbox import DigitalBitboxPlugin
 from ..hw_wallet import CmdLineHandler
 

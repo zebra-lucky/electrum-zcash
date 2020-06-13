@@ -1,8 +1,8 @@
-from electrum_dash import transaction
-from electrum_dash.transaction import TxOutputForUI, tx_from_str
-from electrum_dash.bitcoin import TYPE_ADDRESS
-from electrum_dash.keystore import xpubkey_to_address
-from electrum_dash.util import bh2u, bfh
+from electrum_zcash import transaction
+from electrum_zcash.transaction import TxOutputForUI, tx_from_str
+from electrum_zcash.bitcoin import TYPE_ADDRESS
+from electrum_zcash.keystore import xpubkey_to_address
+from electrum_zcash.util import bh2u, bfh
 
 from . import SequentialTestCase, TestCaseForTestnet
 from .test_bitcoin import needs_test_with_all_ecc_implementations

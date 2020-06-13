@@ -11,11 +11,11 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.button import Button
 
 from .question import Question
-from electrum_dash.gui.kivy.i18n import _
+from electrum_zcash.gui.kivy.i18n import _
 
-from electrum_dash.dash_tx import SPEC_TX_NAMES, tx_header_to_tx_type
-from electrum_dash.util import InvalidPassword, bfh
-from electrum_dash.address_synchronizer import TX_HEIGHT_LOCAL
+from electrum_zcash.dash_tx import SPEC_TX_NAMES, tx_header_to_tx_type
+from electrum_zcash.util import InvalidPassword, bfh
+from electrum_zcash.address_synchronizer import TX_HEIGHT_LOCAL
 
 
 Builder.load_string('''
@@ -95,7 +95,7 @@ Builder.load_string('''
             IconButton:
                 size_hint: 0.5, None
                 height: '48dp'
-                icon: 'atlas://electrum_dash/gui/kivy/theming/light/qrcode'
+                icon: 'atlas://electrum_zcash/gui/kivy/theming/light/qrcode'
                 on_release: root.show_qr()
             Button:
                 size_hint: 0.5, None
@@ -234,7 +234,7 @@ class TxDialog(Factory.Popup):
         self.app.broadcast(self.tx)
 
     def show_qr(self):
-        from electrum_dash.bitcoin import base_encode, bfh
+        from electrum_zcash.bitcoin import base_encode, bfh
         raw_tx = str(self.tx)
         text = bfh(raw_tx)
         text = base_encode(text, base=43)
