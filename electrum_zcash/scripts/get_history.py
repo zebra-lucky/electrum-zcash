@@ -11,7 +11,7 @@ from electrum_zcash.util import json_encode, print_msg, create_and_start_event_l
 try:
     addr = sys.argv[1]
 except Exception:
-    print("usage: get_history <dash_address>")
+    print("usage: get_history <zcash_address>")
     sys.exit(1)
 
 loop, stopping_fut, loop_thread = create_and_start_event_loop()

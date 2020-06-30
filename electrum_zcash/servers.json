@@ -1,17 +1,8 @@
 {
-    "electrum.dash.siampm.com": {
+    "localhost": {
         "pruning": "-",
-        "s": "50002",
-        "version": "1.4"
-    },
-    "drk.p2pay.com": {
-        "pruning": "-",
-        "s": "50002",
-        "version": "1.4"
-     },
-    "hyhwaxmckqakwjde.onion": {
-        "pruning": "-",
-        "s": "50002",
+        "s": "50022",
+        "t": "50021",
         "version": "1.4"
     }
 }

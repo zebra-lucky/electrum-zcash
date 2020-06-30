@@ -11,7 +11,7 @@ from electrum_zcash.synchronizer import SynchronizerBase
 try:
     addr = sys.argv[1]
 except Exception:
-    print("usage: watch_address <dash_address>")
+    print("usage: watch_address <zcash_address>")
     sys.exit(1)
 
 # start network

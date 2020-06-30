@@ -662,17 +662,15 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 mainnet_block_explorers = {
-    'Zcash.org': ('https://explorer.dash.org/',
-                 {'tx': 'tx/', 'addr': 'address/'}),
-    'Insight.dash.org': ('https://insight.dash.org/insight/',
-                         {'tx': 'tx/', 'addr': 'address/'}),
+    'blockexplorer.com': ('https://zcash.blockexplorer.com/blocks/',
+                          {'tx': 'transactions/', 'addr': 'addresses/'}),
     'system default': ('blockchain:/',
                        {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 testnet_block_explorers = {
-    'Zcash.org': ('https://testnet-insight.dashevo.org/insight/',
-                 {'tx': 'tx/', 'addr': 'address/'}),
+    'testnet.z.cash': ('https://explorer.testnet.z.cash/',
+                       {'tx': 'tx/', 'addr': 'address/'}),
     'system default': ('blockchain:/',
                        {'tx': 'tx/', 'addr': 'address/'}),
 }
@@ -723,7 +721,7 @@ def parse_URI(uri: str, on_pr: Callable = None, *, loop=None) -> dict:
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
-    if u.scheme != 'dash':
+    if u.scheme != 'zcash':
         raise InvalidBitcoinURI("Not a Zcash URI")
     address = u.path
 
@@ -811,7 +809,7 @@ def create_bip21_uri(addr, amount_sat: Optional[int], message: Optional[str],
             raise Exception(f"illegal key for URI: {repr(k)}")
         v = urllib.parse.quote(v)
         query.append(f"{k}={v}")
-    p = urllib.parse.ParseResult(scheme='dash', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urllib.parse.ParseResult(scheme='zcash', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return str(urllib.parse.urlunparse(p))
 
 

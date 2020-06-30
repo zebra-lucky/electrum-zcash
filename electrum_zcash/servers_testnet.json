@@ -1,22 +1,8 @@
 {
-    "dword.ga": {
-        "pruning": "-",
-        "s": "51002",
-        "version": "1.4"
-    },
-    "hyhwaxmckqakwjde.onion": {
-        "pruning": "-",
-        "s": "60002",
-        "version": "1.4"
-    },
-    "dasht.random.re": {
-        "pruning": "-",
-        "s": "54002",
-        "version": "1.4"
-    },
     "127.0.0.1": {
         "pruning": "-",
-        "s": "57002",
+        "s": "51022",
+        "t": "51021",
         "version": "1.4"
     }
 }

@@ -115,7 +115,7 @@ class Processor(threading.Thread, Logger):
         part = MIMEBase('application', "zcash-paymentrequest")
         part.set_payload(payment_request)
         encode_base64(part)
-        part.add_header('Content-Disposition', 'attachment; filename="payreq.dash"')
+        part.add_header('Content-Disposition', 'attachment; filename="payreq.zcash"')
         msg.attach(part)
         try:
             s = smtplib.SMTP_SSL(self.imap_server, timeout=2)
