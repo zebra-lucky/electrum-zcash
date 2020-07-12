@@ -245,9 +245,6 @@ class Commands:
         Outputs must be a list of {'address':address, 'value':satoshi_amount}.
         """
         keypairs = {}
-        if jsontx.get('extra_payload'):
-            return {'error': 'Transactions with extra payload can not'
-                             ' be created from serialize command'}
         inputs = jsontx.get('inputs')
         outputs = jsontx.get('outputs')
         locktime = jsontx.get('lockTime', 0)
@@ -289,14 +286,13 @@ class Commands:
     def deserialize(self, tx):
         """Deserialize a serialized transaction"""
         tx = Transaction(tx)
-        return tx.deserialize(force_full_parse=True,
-                              extra_payload_for_json=True)
+        return tx.deserialize(force_full_parse=True)
 
     @command('n')
     def broadcast(self, tx):
         """Broadcast a transaction to the network. """
         tx = Transaction(tx)
-        coro = self.wallet.psman.broadcast_transaction(tx)
+        coro = self.network.broadcast_transaction(tx)
         self.network.run_from_another_thread(coro)
         return tx.txid()
 
@@ -757,12 +753,9 @@ class Commands:
             raise Exception(f"{repr(txid)} is not a txid")
         if not self.wallet.db.get_transaction(txid):
             raise Exception("Transaction not in wallet.")
-        res = {
+        return {
             "confirmations": self.wallet.get_tx_height(txid).conf,
         }
-        if txid in self.wallet.db.islocks:
-            res['instantsend_locked'] = True
-        return res
 
     @command('n')
     def exportcp(self, cpfile):
@@ -809,7 +802,6 @@ param_descriptions = {
 }
 
 command_options = {
-    'broadcast':   (None, "Broadcast the transaction to the Zcash network"),
     'password':    ("-W", "Password"),
     'new_password':(None, "New Password"),
     'encrypt_file':(None, "Whether the file on disk should be encrypted with the provided password"),
@@ -854,10 +846,8 @@ command_options = {
 from .transaction import tx_from_str
 json_loads = lambda x: json.loads(x, parse_float=lambda x: str(Decimal(x)))
 arg_types = {
-    'block_start': int,
     'num': int,
     'nbits': int,
-    'payments_count': int,
     'imax': int,
     'year': int,
     'from_height': int,

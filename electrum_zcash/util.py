@@ -66,9 +66,9 @@ def inv_dict(d):
 ca_path = certifi.where()
 
 
-base_units = {'Zcash':8, 'mZcash':5, 'uZcash':2, 'duffs':0}
+base_units = {'Zcash':8, 'mZcash':5, 'uZcash':2, 'sat':0}
 base_units_inverse = inv_dict(base_units)
-base_units_list = ['Zcash', 'mZcash', 'uZcash', 'duffs']  # list(dict) does not guarantee order
+base_units_list = ['Zcash', 'mZcash', 'uZcash', 'sat']  # list(dict) does not guarantee order
 
 DECIMAL_POINT_DEFAULT = 8  # Zcash
 
@@ -157,7 +157,7 @@ class Satoshis(object):
         return self
 
     def __repr__(self):
-        return 'Duffs(%d)'%self.value
+        return 'Satoshis(%d)'%self.value
 
     def __str__(self):
         return format_satoshis(self.value)

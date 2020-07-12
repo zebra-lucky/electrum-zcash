@@ -407,12 +407,12 @@ class SimpleConfig(Logger):
         text is what we target: static fee / num blocks to confirm in / mempool depth
         tooltip is the corresponding estimate (e.g. num blocks for a static fee)
 
-        fee_rate is in duffs/kbyte
+        fee_rate is in sat/kbyte
         """
         if fee_rate is None:
             rate_str = 'unknown'
         else:
-            rate_str = format_fee_satoshis(fee_rate) + ' duffs/kB'
+            rate_str = format_fee_satoshis(fee_rate) + ' sat/kB'
 
         if dyn:
             if mempool:

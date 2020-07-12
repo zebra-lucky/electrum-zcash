@@ -45,12 +45,11 @@ from .util import (NotEnoughFunds, UserCancelled, profiler,
                    format_satoshis, format_fee_satoshis, NoDynamicFeeEstimates,
                    WalletFileException, BitcoinException,
                    InvalidPassword, format_time, timestamp_to_datetime, Satoshis,
-                   Fiat, bfh, bh2u, TxMinedInfo, quantize_feerate, AlreadyHaveAddress)
+                   Fiat, bfh, bh2u, TxMinedInfo, quantize_feerate)
 from .bitcoin import (COIN, TYPE_ADDRESS, is_address, address_to_script,
-                      is_minikey, relayfee, dust_threshold, public_key_to_p2pkh)
+                      is_minikey, relayfee, dust_threshold)
 from .crypto import sha256d
 from . import keystore
-from .dash_tx import SPEC_TX_NAMES, PSCoinRounds
 from .keystore import load_keystore, Hardware_KeyStore
 from .util import multisig_type
 from .storage import STO_EV_PLAINTEXT, STO_EV_USER_PW, STO_EV_XPUB_PW, WalletStorage
@@ -140,9 +139,9 @@ def sweep(privkeys, network: 'Network', config: 'SimpleConfig', recipient, fee=N
         tx = Transaction.from_io(inputs, outputs)
         fee = config.estimate_fee(tx.estimated_size())
     if total - fee < 0:
-        raise Exception(_('Not enough funds on address.') + '\nTotal: %d duffs\nFee: %d'%(total, fee))
+        raise Exception(_('Not enough funds on address.') + '\nTotal: %d satoshis\nFee: %d'%(total, fee))
     if total - fee < dust_threshold(network):
-        raise Exception(_('Not enough funds on address.') + '\nTotal: %d duffs\nFee: %d\nDust Threshold: %d'%(total, fee, dust_threshold(network)))
+        raise Exception(_('Not enough funds on address.') + '\nTotal: %d satoshis\nFee: %d\nDust Threshold: %d'%(total, fee, dust_threshold(network)))
 
     outputs = [TxOutput(TYPE_ADDRESS, recipient, total - fee)]
     if locktime is None:
@@ -188,7 +187,6 @@ class TxWalletDetails(NamedTuple):
     fee: Optional[int]
     tx_mined_status: TxMinedInfo
     mempool_depth_bytes: Optional[int]
-    islock: Optional[int]
 
 
 class Abstract_Wallet(AddressSynchronizer):
@@ -221,9 +219,6 @@ class Abstract_Wallet(AddressSynchronizer):
 
         self.calc_unused_change_addresses()
 
-        # Delegate keys for signing Masternode Pings.
-        self.masternode_delegates = storage.get('masternode_delegates', {})
-
         # save wallet type the first time
         if self.storage.get('wallet_type') is None:
             self.storage.put('wallet_type', self.wallet_type)
@@ -243,12 +238,6 @@ class Abstract_Wallet(AddressSynchronizer):
         if b: self.storage.write()
 
     def clear_history(self):
-        if self.psman.enabled:
-            with self.psman.state_lock:
-                if self.psman.state in self.psman.no_clean_history_states:
-                    print(f'Can not clear history when PrivateSend'
-                          f' manager is in {self.psman.state} state')
-                    return
         super().clear_history()
         self.storage.write()
 
@@ -284,9 +273,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 addrs = self._unused_change_addresses
             else:
                 addrs = self.get_change_addresses()
-            ps_reserved = self.db.get_ps_reserved()
-            unused = [addr for addr in addrs if not self.is_used(addr)
-                      and addr not in ps_reserved]
+            unused = [addr for addr in addrs if not self.is_used(addr)]
             self._unused_change_addresses = unused
             return list(self._unused_change_addresses)
 
@@ -390,7 +377,6 @@ class Abstract_Wallet(AddressSynchronizer):
         can_broadcast = False
         label = ''
         tx_hash = tx.txid()
-        islock = self.db.get_islock(tx_hash)
         tx_mined_status = self.get_tx_height(tx_hash)
         if tx.is_complete():
             if self.db.get_transaction(tx_hash):
@@ -398,20 +384,12 @@ class Abstract_Wallet(AddressSynchronizer):
                 conf = tx_mined_status.conf
                 if tx_mined_status.height > 0:
                     if conf:
-                        if conf < 6 and islock:
-                            status = (_('InstantSend') + ', ' +
-                                      _('{} confirmations').format(conf))
-                        else:
-                            status = _('{} confirmations').format(conf)
+                        status = _('{} confirmations').format(conf)
                     else:
                         status = _('Not verified')
                 elif tx_mined_status.height in (TX_HEIGHT_UNCONF_PARENT,
                                                 TX_HEIGHT_UNCONFIRMED):
-                    if islock:
-                        status = (_('InstantSend') + ', ' +
-                                  _('{} confirmations').format(conf))
-                    else:
-                        status = _('Unconfirmed')
+                    status = _('Unconfirmed')
                     if fee is None:
                         fee = self.db.get_tx_fee(tx_hash)
                     if fee and self.network and self.network.config.has_fee_mempool():
@@ -448,23 +426,16 @@ class Abstract_Wallet(AddressSynchronizer):
             fee=fee,
             tx_mined_status=tx_mined_status,
             mempool_depth_bytes=exp_n,
-            islock=islock,
         )
 
-    def get_spendable_coins(self, domain, config, *, nonlocal_only=False,
-                            include_ps=False, min_rounds=None):
+    def get_spendable_coins(self, domain, config, *, nonlocal_only=False):
         confirmed_only = config.get('confirmed_only', False)
         utxos = self.get_utxos(domain,
                                excluded_addresses=self.frozen_addresses,
                                mature_only=True,
                                confirmed_only=confirmed_only,
-                               nonlocal_only=nonlocal_only,
-                               include_ps=include_ps,
-                               min_rounds=min_rounds)
+                               nonlocal_only=nonlocal_only)
         utxos = [utxo for utxo in utxos if not self.is_frozen_coin(utxo)]
-        if self.psman.enabled and include_ps and not self.psman.allow_others:
-            utxos = [utxo for utxo in utxos
-                     if utxo['ps_rounds'] != PSCoinRounds.OTHER]
         return utxos
 
     def get_receiving_addresses(self, *, slice_start=None, slice_stop=None) -> Sequence:
@@ -490,11 +461,8 @@ class Abstract_Wallet(AddressSynchronizer):
         # we also assume that block timestamps are monotonic (which is false...!)
         h = self.get_history(domain)
         balance = 0
-        for (tx_hash, tx_type, tx_mined_status, value, balance,
-             islock, group_txid, group_data) in h:
+        for tx_hash, tx_mined_status, value, balance in h:
             mined_ts = tx_mined_status.timestamp
-            if not mined_ts and islock:
-                mined_ts = islock
             if mined_ts is None or mined_ts > target_timestamp:
                 return balance - value
         # return last balance
@@ -503,8 +471,7 @@ class Abstract_Wallet(AddressSynchronizer):
     @profiler
     def get_full_history(self, domain=None, from_timestamp=None, to_timestamp=None,
                          fx=None, show_addresses=False, show_fees=False,
-                         from_height=None, to_height=None, config=None,
-                         group_ps=False):
+                         from_height=None, to_height=None, config=None):
         if (from_timestamp is not None or to_timestamp is not None) \
                 and (from_height is not None or to_height is not None):
             raise Exception('timestamp and block height based filtering cannot be used together')
@@ -514,18 +481,10 @@ class Abstract_Wallet(AddressSynchronizer):
         capital_gains = Decimal(0)
         fiat_income = Decimal(0)
         fiat_expenditures = Decimal(0)
-        h = self.get_history(domain, config=config, group_ps=group_ps)
+        h = self.get_history(domain, config=config)
         now = time.time()
-        if config:
-            def_dip2 = not self.psman.unsupported
-            show_dip2 = config.get('show_dip2_tx_type', def_dip2)
-        else:
-            show_dip2 = True  # for testing
-        for (tx_hash, tx_type, tx_mined_status, value, balance,
-             islock, group_txid, group_data) in h:
+        for tx_hash, tx_mined_status, value, balance in h:
             timestamp = tx_mined_status.timestamp
-            if not timestamp and islock:
-                timestamp = islock
             if from_timestamp and (timestamp or now) < from_timestamp:
                 continue
             if to_timestamp and (timestamp or now) >= to_timestamp:
@@ -537,11 +496,6 @@ class Abstract_Wallet(AddressSynchronizer):
                 continue
             tx = self.db.get_transaction(tx_hash)
             tx_label = self.get_label(tx_hash)
-            if group_data:
-                group_delta, group_balance, group_txids = group_data
-                group_delta_sat = Satoshis(group_delta)
-                group_balance_sat = Satoshis(group_balance)
-                group_data = (group_delta_sat, group_balance_sat, group_txids)
             item = {
                 'txid': tx_hash,
                 'height': height,
@@ -553,13 +507,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 'date': timestamp_to_datetime(timestamp),
                 'label': tx_label,
                 'txpos_in_block': tx_mined_status.txpos,
-                'islock': islock,
-                'group_txid': group_txid,
-                'group_data': group_data,
             }
-            if show_dip2:
-                tx_type_name = SPEC_TX_NAMES.get(tx_type, str(tx_type))
-                item['dip2'] = tx_type_name
             tx_fee = None
             if show_fees:
                 tx_fee = self.get_tx_fee(tx)
@@ -665,13 +613,11 @@ class Abstract_Wallet(AddressSynchronizer):
             return ', '.join(labels)
         return ''
 
-    def get_tx_status(self, tx_hash, tx_mined_info: TxMinedInfo, islock):
+    def get_tx_status(self, tx_hash, tx_mined_info: TxMinedInfo):
         extra = []
         height = tx_mined_info.height
         conf = tx_mined_info.conf
         timestamp = tx_mined_info.timestamp
-        if not timestamp and islock:
-            timestamp = islock
         if conf == 0:
             tx = self.db.get_transaction(tx_hash)
             if not tx:
@@ -682,7 +628,7 @@ class Abstract_Wallet(AddressSynchronizer):
             if fee is not None:
                 size = tx.estimated_size()
                 fee_per_kb = round(fee * 1000 / size)
-                extra.append(format_fee_satoshis(fee_per_kb) + ' duffs/kB')
+                extra.append(format_fee_satoshis(fee_per_kb) + ' sat/kB')
             if fee is not None and height in (TX_HEIGHT_UNCONF_PARENT, TX_HEIGHT_UNCONFIRMED) \
                and self.network and self.network.config.has_fee_mempool():
                 exp_n = self.network.config.fee_to_depth(fee_per_kb)
@@ -691,22 +637,15 @@ class Abstract_Wallet(AddressSynchronizer):
             if height == TX_HEIGHT_LOCAL:
                 status = 3
             elif height == TX_HEIGHT_UNCONF_PARENT:
-                status = 1 if not islock else 9
+                status = 1
             elif height == TX_HEIGHT_UNCONFIRMED:
-                status = 0 if not islock else 9
+                status = 0
             else:
                 status = 2  # not SPV verified
         else:
-            if conf >= 6:
-                status = 10
-            elif islock:
-                status = 9
-            else:
-                status = 3 + conf
+            status = 3 + min(conf, 6)
         time_str = format_time(timestamp) if timestamp else _("unknown")
         status_str = TX_STATUS[status] if status < 4 else time_str
-        if extra and not islock:
-            status_str += ' [%s]'%(', '.join(extra))
         return status, status_str
 
     def relayfee(self):
@@ -734,8 +673,6 @@ class Abstract_Wallet(AddressSynchronizer):
                 # if there are none, take one randomly from the last few
                 limit = self.gap_limit_for_change
                 addrs = self.get_change_addresses()
-                ps_addrs = self.db.get_ps_addresses()
-                addrs = [addr for addr in addrs if addr not in ps_addrs]
                 change_addrs = [random.choice(addrs[-limit:])] if addrs else []
         for addr in change_addrs:
             assert is_address(addr), f"not valid Zcash address: {addr}"
@@ -746,12 +683,7 @@ class Abstract_Wallet(AddressSynchronizer):
         return change_addrs[:max_change]
 
     def make_unsigned_transaction(self, coins, outputs, config, fixed_fee=None,
-                                  change_addr=None, is_sweep=False,
-                                  min_rounds=None,
-                                  tx_type=0, extra_payload=b''):
-        if min_rounds is not None:
-            self.psman.check_min_rounds(coins, min_rounds)
-
+                                  change_addr=None, is_sweep=False):
         # check outputs
         i_max = None
         for i, o in enumerate(outputs):
@@ -781,23 +713,13 @@ class Abstract_Wallet(AddressSynchronizer):
 
         if i_max is None:
             # change address. if empty, coin_chooser will set it
-            change_addrs = ([] if min_rounds is not None else
-                                self.get_change_addresses_for_new_transaction(
-                                    change_addr))
+            change_addrs = \
+                self.get_change_addresses_for_new_transaction(change_addr)
             # Let the coin chooser select the coins to spend
-            if min_rounds is None:
-                coin_chooser = coinchooser.get_coin_chooser(config)
-                tx = coin_chooser.make_tx(coins, [], outputs[:],
-                                          change_addrs, fee_estimator,
-                                          self.dust_threshold(),
-                                          tx_type=tx_type,
-                                          extra_payload=extra_payload)
-            else:
-                coin_chooser = coinchooser.get_coin_chooser_privatesend()
-                tx = coin_chooser.make_tx(coins, outputs[:], fee_estimator,
-                                          min_rounds=min_rounds,
-                                          tx_type=tx_type,
-                                          extra_payload=extra_payload)
+            coin_chooser = coinchooser.get_coin_chooser(config)
+            tx = coin_chooser.make_tx(coins, [], outputs[:],
+                                      change_addrs, fee_estimator,
+                                      self.dust_threshold())
         else:
             # "spend max" branch
             # note: This *will* spend inputs with negative effective value (if there are any).
@@ -808,23 +730,16 @@ class Abstract_Wallet(AddressSynchronizer):
             #       being spent if the user manually selected UTXOs.
             sendable = sum(map(lambda x:x['value'], coins))
             outputs[i_max] = outputs[i_max]._replace(value=0)
-            tx = Transaction.from_io(coins, outputs[:],
-                                     tx_type=tx_type,
-                                     extra_payload=extra_payload)
+            tx = Transaction.from_io(coins, outputs[:])
             fee = fee_estimator(tx.estimated_size())
             amount = sendable - tx.output_value() - fee
             if amount < 0:
                 raise NotEnoughFunds()
             outputs[i_max] = outputs[i_max]._replace(value=amount)
-            tx = Transaction.from_io(coins, outputs[:],
-                                     tx_type=tx_type,
-                                     extra_payload=extra_payload)
+            tx = Transaction.from_io(coins, outputs[:])
 
         # Timelock tx to current height.
         tx.locktime = get_locktime_for_new_transaction(self.network)
-        # Update extra payload with tx data
-        if tx_type:
-            tx.extra_payload.update_with_tx_data(tx)
         run_hook('make_unsigned_transaction', self, tx)
         return tx
 
@@ -985,9 +900,6 @@ class Abstract_Wallet(AddressSynchronizer):
         for k in sorted(self.get_keystores(), key=lambda ks: ks.ready_to_sign(), reverse=True):
             try:
                 if k.can_sign(tx):
-                    if tx.tx_type:
-                        ex_p = tx.extra_payload
-                        ex_p.update_with_keystore_password(tx, self, k, password)
                     k.sign_transaction(tx, password)
             except UserCancelled:
                 continue
@@ -1009,10 +921,8 @@ class Abstract_Wallet(AddressSynchronizer):
     def get_unused_addresses(self):
         # fixme: use slots from expired requests
         domain = self.get_receiving_addresses()
-        ps_reserved = self.db.get_ps_reserved()
         return [addr for addr in domain if not self.is_used(addr)
-                and addr not in self.receive_requests.keys()
-                and addr not in ps_reserved]
+                and addr not in self.receive_requests.keys()]
 
     @check_returned_address
     def get_unused_address(self):
@@ -1027,10 +937,7 @@ class Abstract_Wallet(AddressSynchronizer):
         if not domain:
             return
         choice = domain[0]
-        ps_reserved = self.db.get_ps_reserved()
         for addr in domain:
-            if addr in ps_reserved:
-                continue
             if not self.is_used(addr):
                 if addr not in self.receive_requests.keys():
                     return addr
@@ -1043,7 +950,7 @@ class Abstract_Wallet(AddressSynchronizer):
         received, sent = self.get_addr_io(address)
         l = []
         for txo, x in received.items():
-            h, v, is_cb, islock = x
+            h, v, is_cb = x
             txid, n = txo.split(':')
             info = self.db.get_verified_tx(txid)
             if info:
@@ -1143,9 +1050,6 @@ class Abstract_Wallet(AddressSynchronizer):
             raise Exception(_('Invalid Zcash address.'))
         if not self.is_mine(addr):
             raise Exception(_('Address not in wallet.'))
-        ps_addrs = self.db.get_ps_addresses()
-        if addr in ps_addrs:
-            raise Exception(_('Address is reserved for PrivateSend use.'))
 
         amount = req.get('amount')
         message = req.get('memo')
@@ -1251,10 +1155,6 @@ class Abstract_Wallet(AddressSynchronizer):
             enc_version = self.get_available_storage_encryption_version()
         else:
             enc_version = STO_EV_PLAINTEXT
-
-        if self.psman.enabled and old_pw is None and new_pw:
-            self.psman.on_wallet_password_set()
-
         self.storage.set_password(new_pw, enc_version)
 
         # note: Encrypting storage with a hw device is currently only
@@ -1344,49 +1244,6 @@ class Abstract_Wallet(AddressSynchronizer):
             else:
                 p = self.price_at_timestamp(txid, price_func)
                 return p * txin_value/Decimal(COIN)
-
-    # Zcash Abstract_Wallet additions
-    def get_delegate_private_key(self, pubkey):
-        """Get the private delegate key for pubkey."""
-        return self.masternode_delegates.get(pubkey, '')
-
-    def import_masternode_delegate(self, sec):
-        """Import the private key for a masternode."""
-        try:
-            txin_type, key, is_compressed = bitcoin.deserialize_privkey(sec)
-            pubkey = ecc.ECPrivkey(key)\
-                .get_public_key_hex(compressed=is_compressed)
-            address = public_key_to_p2pkh(pubkey)
-        except BaseException:
-            raise Exception('Invalid private key')
-
-        if self.masternode_delegates.get(pubkey):
-            raise AlreadyHaveAddress('Masternode key already in wallet',
-                                     address)
-
-        self.masternode_delegates[pubkey] = sec
-        self.storage.put('masternode_delegates', self.masternode_delegates)
-        return pubkey
-
-    def delete_masternode_delegate(self, pubkey):
-        if self.masternode_delegates.get(pubkey):
-            del self.masternode_delegates[pubkey]
-            self.storage.put('masternode_delegates', self.masternode_delegates)
-
-    def sign_masternode_ping(self, ping, pubkey):
-        """Sign a Masternode Ping for address."""
-        sec = self.masternode_delegates.get(pubkey)
-        if not sec:
-            raise Exception('Private key not known for public key %s' % pubkey)
-        ping.sign(sec)
-        return True
-
-    def sign_budget_vote(self, vote, pubkey):
-        """Sign a Budget Vote for address."""
-        sec = self.masternode_delegates.get(pubkey)
-        if not sec:
-            raise Exception('Private key not known for public key %s' % pubkey)
-        return vote.sign(sec)
 
     def is_watching_only(self) -> bool:
         raise NotImplementedError()
