@@ -1083,8 +1083,8 @@ class ElectrumWindow(App):
         return format_satoshis_plain(x, self.decimal_point()) + ' ' + self.base_unit
 
     def format_fee_rate(self, fee_rate):
-        # fee_rate is in duffs/kB
-        return format_fee_satoshis(fee_rate) + ' duffs/kB'
+        # fee_rate is in sat/kB
+        return format_fee_satoshis(fee_rate) + ' sat/kB'
 
     #@profiler
     def update_wallet(self, *dt):

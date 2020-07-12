@@ -898,8 +898,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         return text
 
     def format_fee_rate(self, fee_rate):
-        # fee_rate is in duffs/kB
-        return format_fee_satoshis(fee_rate, num_zeros=self.num_zeros) + ' duffs/kB'
+        # fee_rate is in sat/kB
+        return format_fee_satoshis(fee_rate, num_zeros=self.num_zeros) + ' sat/kB'
 
     def get_decimal_point(self):
         return self.decimal_point
@@ -1329,7 +1329,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 
     def set_feerounding_text(self, num_satoshis_added):
         if abs(num_satoshis_added) >= 1:
-            self.feerounding_text = (_('Additional {} duffs are'
+            self.feerounding_text = (_('Additional {} sat are'
                                        ' going to be added.')
                                      .format(num_satoshis_added))
         else:
@@ -1486,7 +1486,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         def feerounding_onclick():
             text = (self.feerounding_text + '\n\n' +
                     _('To somewhat protect your privacy, Electrum-Zcash tries to create change with similar precision to other outputs.') + ' ' +
-                    _('At most 100 duffs might be lost due to this rounding.') + ' ' +
+                    _('At most 100 sat might be lost due to this rounding.') + ' ' +
                     _("You can disable this setting in '{}'.").format(_('Preferences')) + '\n' +
                     _('Also, dust is not kept as change, but added to the fee.'))
             self.show_message(title=_('Fee rounding'), msg=text)
@@ -3337,7 +3337,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 
         units = base_units_list
         msg = (_('Base unit of your wallet.')
-               + '\n1 Zcash = 1000 mZcash. 1 mZcash = 1000 uZcash. 1 uZcash = 100 duffs.\n'
+               + '\n1 Zcash = 1000 mZcash. 1 mZcash = 1000 uZcash. 1 uZcash = 100 sat.\n'
                + _('This setting affects the Send tab, and all balance related fields.'))
         unit_label = HelpLabel(_('Base unit') + ':', msg)
         unit_combo = QComboBox()
@@ -3493,7 +3493,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         outrounding_cb.setToolTip(
             _('Set the value of the change output so that it has similar precision to the other outputs.') + '\n' +
             _('This might improve your privacy somewhat.') + '\n' +
-            _('If enabled, at most 100 duffs might be lost due to this, per transaction.'))
+            _('If enabled, at most 100 sat might be lost due to this, per transaction.'))
         outrounding_cb.setChecked(enable_outrounding)
         outrounding_cb.stateChanged.connect(on_outrounding)
         tx_widgets.append((outrounding_cb, None))

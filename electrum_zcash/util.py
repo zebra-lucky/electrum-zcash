@@ -580,7 +580,7 @@ def format_satoshis(x, num_zeros=0, decimal_point=8, precision=None, is_diff=Fal
     return result
 
 
-FEERATE_PRECISION = 0  # num fractional decimal places for duffs/kB fee rates
+FEERATE_PRECISION = 0  # num fractional decimal places for sat/kB fee rates
 _feerate_quanta = Decimal(10) ** (-FEERATE_PRECISION)
 
 
