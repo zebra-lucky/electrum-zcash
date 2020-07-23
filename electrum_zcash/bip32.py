@@ -138,14 +138,6 @@ class BIP32Node(NamedTuple):
         elif header in net.XPUB_HEADERS_INV:
             headers_inv = net.XPUB_HEADERS_INV
             is_private = False
-        elif header == net.DRKV_HEADER:
-            headers_inv = net.XPRV_HEADERS_INV
-            header = net.XPRV_HEADERS['standard']
-            is_private = True
-        elif header == net.DRKP_HEADER:
-            headers_inv = net.XPUB_HEADERS_INV
-            header = net.XPUB_HEADERS['standard']
-            is_private = False
         else:
             raise InvalidMasterKeyVersionBytes(f'Invalid extended key format: {hex(header)}')
         xtype = headers_inv[header]
