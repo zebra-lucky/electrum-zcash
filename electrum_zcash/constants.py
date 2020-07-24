@@ -56,7 +56,7 @@ def read_json_gz(filename, default):
     return r
 
 
-GIT_REPO_URL = "https://github.com/akhavr/electrum-zcash"
+GIT_REPO_URL = "https://github.com/zebra-lucky/electrum-zcash"
 GIT_REPO_ISSUES_URL = f"{GIT_REPO_URL}/issues"
 
 
@@ -73,11 +73,11 @@ class AbstractNet:
 class BitcoinMainnet(AbstractNet):
 
     TESTNET = False
-    WIF_PREFIX = 204
-    ADDRTYPE_P2PKH = 76
-    ADDRTYPE_P2SH = 16
-    GENESIS = "00000ffd590b1485b3caadc19b22e6379c733355108f107a430458cdf3407ab6"
-    DEFAULT_PORTS = {'t': '50001', 's': '50002'}
+    WIF_PREFIX = 0x80
+    ADDRTYPE_P2PKH = bytes.fromhex('1CB8')
+    ADDRTYPE_P2SH = bytes.fromhex('1CBD')
+    GENESIS = "00040fe8ec8471911baa1db1266ea15dd06b4a8a5c453883c000b031973dce08"
+    DEFAULT_PORTS = {'t': '50021', 's': '50022'}
     DEFAULT_SERVERS = read_json('servers.json', {})
     CHECKPOINTS = read_json_gz('checkpoints.json.gz', [])
 
@@ -89,20 +89,18 @@ class BitcoinMainnet(AbstractNet):
         'standard':    0x0488b21e,  # xpub
     }
     XPUB_HEADERS_INV = inv_dict(XPUB_HEADERS)
-    DRKV_HEADER = 0x02fe52f8  # drkv
-    DRKP_HEADER = 0x02fe52cc  # drkp
-    BIP44_COIN_TYPE = 5
-    DIP3_ACTIVATION_HEIGHT = 1028160
+    OVERWINTER_HEIGHT = 347500
+    BIP44_COIN_TYPE = 133
 
 
 class BitcoinTestnet(AbstractNet):
 
     TESTNET = True
-    WIF_PREFIX = 239
-    ADDRTYPE_P2PKH = 140
-    ADDRTYPE_P2SH = 19
-    GENESIS = "00000bafbc94add76cb75e2ec92894837288a481e5c005f6563d91623bf8bc2c"
-    DEFAULT_PORTS = {'t': '51001', 's': '51002'}
+    WIF_PREFIX = 0xEF
+    ADDRTYPE_P2PKH = bytes.fromhex('1D25')
+    ADDRTYPE_P2SH = bytes.fromhex('1CBA')
+    GENESIS = "05a60a92d99d85997cce3b87616c089f6124d7342af37106edc76126334a2c38"
+    DEFAULT_PORTS = {'t': '51021', 's': '51022'}
     DEFAULT_SERVERS = read_json('servers_testnet.json', {})
     CHECKPOINTS = read_json_gz('checkpoints_testnet.json.gz', [])
 
@@ -114,15 +112,13 @@ class BitcoinTestnet(AbstractNet):
         'standard':    0x043587cf,  # tpub
     }
     XPUB_HEADERS_INV = inv_dict(XPUB_HEADERS)
-    DRKV_HEADER = 0x3a8061a0  # DRKV
-    DRKP_HEADER = 0x3a805837  # DRKP
+    OVERWINTER_HEIGHT = 207500
     BIP44_COIN_TYPE = 1
-    DIP3_ACTIVATION_HEIGHT = 7000
 
 
 class BitcoinRegtest(BitcoinTestnet):
 
-    GENESIS = "000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e"
+    GENESIS = "029f11d80ef9765602235e1bc9727e3eb6ba20839319f761fee920d63401e327"
     DEFAULT_SERVERS = read_json('servers_regtest.json', {})
     CHECKPOINTS = []
 
