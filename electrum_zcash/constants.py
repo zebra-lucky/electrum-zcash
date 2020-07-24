@@ -60,7 +60,7 @@ GIT_REPO_URL = "https://github.com/akhavr/electrum-zcash"
 GIT_REPO_ISSUES_URL = f"{GIT_REPO_URL}/issues"
 
 
-CHUNK_SIZE = 2016
+CHUNK_SIZE = 100
 
 
 class AbstractNet:
