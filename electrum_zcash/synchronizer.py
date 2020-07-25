@@ -256,13 +256,7 @@ class Synchronizer(SynchronizerBase):
             if history == ['*']: continue
             await self._request_missing_txs(history, allow_server_not_finding_tx=True)
         # add addresses to bootstrap
-        if not self.wallet.psman.subscribe_spent:
-            unsubscribed_addrs = self.wallet.psman.unsubscribed_addrs
-        else:
-            unsubscribed_addrs = set()
         for addr in self.wallet.get_addresses():
-            if addr in unsubscribed_addrs:
-                continue
             await self._add_address(addr)
         # main loop
         while True:

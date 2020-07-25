@@ -66,9 +66,9 @@ def inv_dict(d):
 ca_path = certifi.where()
 
 
-base_units = {'Zcash':8, 'mZcash':5, 'uZcash':2, 'sat':0}
+base_units = {'ZEC':8, 'mZEC':5, 'uZEC':2, 'sat':0}
 base_units_inverse = inv_dict(base_units)
-base_units_list = ['Zcash', 'mZcash', 'uZcash', 'sat']  # list(dict) does not guarantee order
+base_units_list = ['ZEC', 'mZEC', 'uZEC', 'sat']  # list(dict) does not guarantee order
 
 DECIMAL_POINT_DEFAULT = 8  # Zcash
 

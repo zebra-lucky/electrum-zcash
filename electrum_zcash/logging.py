@@ -48,7 +48,7 @@ def _shorten_name_of_logrecord(record: logging.LogRecord) -> logging.LogRecord:
     record = copy.copy(record)  # avoid mutating arg
     # strip the main module name from the logger name
     if record.name.startswith("electrum_zcash."):
-        record.name = record.name[14:]
+        record.name = record.name[15:]
     # manual map to shorten common module names
     record.name = record.name.replace("interface.Interface", "interface", 1)
     record.name = record.name.replace("network.Network", "network", 1)
@@ -189,7 +189,7 @@ class ShortcutFilteringFilter(logging.Filter):
 
 def get_logger(name: str) -> logging.Logger:
     if name.startswith("electrum_zcash."):
-        name = name[14:]
+        name = name[15:]
     return electrum_logger.getChild(name)
 
 

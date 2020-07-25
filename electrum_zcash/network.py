@@ -824,7 +824,7 @@ class Network(Logger):
             with open(filename, 'wb') as f:
                 for i in range(len_checkpoints):
                     for height, header_data in b.checkpoints[i][2]:
-                        f.seek(height*80)
+                        f.seek(height*HEADER_SIZE)
                         bin_header = util.bfh(header_data)
                         f.write(bin_header)
             util.ensure_sparse_file(filename)

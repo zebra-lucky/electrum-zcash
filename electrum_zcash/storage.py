@@ -65,11 +65,6 @@ class WalletStorage(Logger):
             self._encryption_version = self._init_encryption_version()
             if not self.is_encrypted():
                 self.db = DB_Class(self.raw, manual_upgrades=manual_upgrades)
-                if self.db.upgrade_done:
-                    try:
-                        self.backup_old_version()
-                    except Exception as e:
-                        self.logger.error(f'backup failed: {str(e)}')
                 self.load_plugins()
         else:
             self._encryption_version = STO_EV_PLAINTEXT
@@ -236,11 +231,6 @@ class WalletStorage(Logger):
 
     def upgrade(self):
         self.db.upgrade()
-        if self.db.upgrade_done:
-            try:
-                self.backup_old_version()
-            except Exception as e:
-                self.logger.error(f'backup failed: {str(e)}')
         self.write()
 
     def requires_split(self):
@@ -262,17 +252,3 @@ class WalletStorage(Logger):
     def get_action(self):
         action = run_hook('get_action', self)
         return action
-
-    def backup_old_version(self):
-        from datetime import datetime
-        now = datetime.now()
-        now_str = now.strftime('%Y%m%d_%H%M%S')
-        backup_file = '%s_%s.back' % (self.path, now_str)
-        if not os.path.exists(backup_file):
-            from shutil import copyfile, copymode
-            copyfile(self.path, backup_file)
-            copymode(self.path, backup_file)
-            self.logger.info(f'backup done: {backup_file}')
-            self.backup_message = (f'Wallet was upgraded to new version.\n'
-                                   f'Backup copy of old wallet version'
-                                   f' placed at:\n{backup_file}')

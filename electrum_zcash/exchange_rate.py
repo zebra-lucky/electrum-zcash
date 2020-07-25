@@ -150,15 +150,24 @@ class BitcoinAverage(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('apiv2.bitcoinaverage.com',
-                                   '/indices/local/ticker/Zcash%s' % ccy)
+                                   '/indices/local/ticker/ZEC%s' % ccy)
         return {ccy: Decimal(json['last'])}
+
+     def history_ccys(self):
+        return ['USD', 'EUR', 'PLN']
+
+     def request_history(self, ccy):
+        history = self.get_json('apiv2.bitcoinaverage.com',
+                               "/indices/local/history/ZEC%s"
+                               "?period=alltime&format=json" % ccy)
+        return dict([(h['time'][:10], h['average']) for h in history])
 
 
 class Bittrex(ExchangeBase):
     async def get_rates(self, ccy):
         json = await self.get_json('bittrex.com',
                                    '/api/v1.1/public/'
-                                   'getticker?market=%s-Zcash' % ccy)
+                                   'getticker?market=%s-ZEC' % ccy)
         quote_currencies = {}
         if not json.get('success', False):
             return quote_currencies
@@ -171,14 +180,14 @@ class Poloniex(ExchangeBase):
     async def get_rates(self, ccy):
         json = await self.get_json('poloniex.com', '/public?command=returnTicker')
         quote_currencies = {}
-        dash_ticker = json.get('BTC_Zcash')
-        quote_currencies['BTC'] = Decimal(dash_ticker['last'])
+        zcash_ticker = json.get('BTC_ZEC')
+        quote_currencies['BTC'] = Decimal(zcash_ticker['last'])
         return quote_currencies
 
 
 class CoinMarketCap(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('api.coinmarketcap.com', '/v1/ticker/dash/')
+        json = await self.get_json('api.coinmarketcap.com', '/v1/ticker/1437/')
         quote_currencies = {}
         if not isinstance(json, list):
             return quote_currencies
@@ -191,29 +200,11 @@ class CoinMarketCap(ExchangeBase):
         return quote_currencies
 
 
-class CoinCap(ExchangeBase):
-
-    async def get_rates(self, ccy):
-        json = await self.get_json('api.coincap.io', '/v2/rates/dash/')
-        return {'USD': Decimal(json['data']['rateUsd'])}
-
-    def history_ccys(self):
-        return ['USD']
-
-    async def request_history(self, ccy):
-        # Currently 2000 days is the maximum in 1 API call
-        # (and history starts on 2017-03-23)
-        history = await self.get_json('api.coincap.io',
-                                      '/v2/assets/dash/history?interval=d1&limit=2000')
-        return dict([(datetime.utcfromtimestamp(h['time']/1000).strftime('%Y-%m-%d'), h['priceUsd'])
-                     for h in history['data']])
-
-
 class CoinGecko(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('api.coingecko.com',
-                                   '/api/v3/coins/dash')
+                                   '/api/v3/coins/zcash')
         r = dict([(ccy.upper(), Decimal(d))
                   for ccy, d in json['market_data']['current_price'].items()])
         return r
@@ -224,7 +215,7 @@ class CoinGecko(ExchangeBase):
 
     async def request_history(self, ccy):
         history = await self.get_json('api.coingecko.com',
-                                      '/api/v3/coins/dash/market_chart?vs_currency=%s&days=max' % ccy)
+                                      '/api/v3/coins/zcash/market_chart?vs_currency=%s&days=max' % ccy)
 
         return dict([(datetime.utcfromtimestamp(h[0]/1000).strftime('%Y-%m-%d'), h[1])
                      for h in history['prices']])

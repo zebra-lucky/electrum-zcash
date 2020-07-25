@@ -33,7 +33,6 @@ import pyaes
 
 from .util import assert_bytes, InvalidPassword, to_bytes, to_string, WalletFileException
 from .i18n import _
-from .x11hash import getPoWHash
 from .logging import get_logger
 
 
@@ -201,10 +200,6 @@ def sha256d(x: Union[bytes, str]) -> bytes:
     x = to_bytes(x, 'utf8')
     out = bytes(sha256(sha256(x)))
     return out
-
-
-def PoWHash(x):
-    return getPoWHash(to_bytes(x))
 
 
 def hash_160(x: bytes) -> bytes:
