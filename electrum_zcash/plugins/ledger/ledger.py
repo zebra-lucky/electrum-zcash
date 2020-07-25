@@ -39,6 +39,7 @@ try:
     from btchip.btchipFirmwareWizard import checkFirmware, updateFirmware
     from btchip.btchipException import BTChipException
     from btchip.bitcoinVarint import writeVarint
+    from .btchip_zcash import btchip_zcash, zcashTransaction
     btchip.setAlternateCoinVersions = setAlternateCoinVersions
     BTCHIP = True
     BTCHIP_DEBUG = False
@@ -49,6 +50,7 @@ MSG_NEEDS_FW_UPDATE_GENERIC = _('Firmware version too old. Please update at') + 
                       ' https://www.ledgerwallet.com'
 MULTI_OUTPUT_SUPPORT = '1.1.4'
 ALTERNATIVE_COIN_VERSION = '1.0.1'
+OVERWINTER_SUPPORT = '1.3.3'
 
 
 def test_pin_unlocked(func):
@@ -66,97 +68,9 @@ def test_pin_unlocked(func):
     return catch_exception
 
 
-class btchip_dash(btchip):
-    def __init__(self, dongle):
-        btchip.__init__(self, dongle)
-
-    def getTrustedInput(self, transaction, index):
-        result = {}
-        # Header
-        apdu = [self.BTCHIP_CLA, self.BTCHIP_INS_GET_TRUSTED_INPUT, 0x00, 0x00]
-        params = bytearray.fromhex("%.8x" % (index))
-        params.extend(transaction.version)
-        writeVarint(len(transaction.inputs), params)
-        apdu.append(len(params))
-        apdu.extend(params)
-        self.dongle.exchange(bytearray(apdu))
-        # Each input
-        for trinput in transaction.inputs:
-            apdu = [self.BTCHIP_CLA, self.BTCHIP_INS_GET_TRUSTED_INPUT, 0x80, 0x00]
-            params = bytearray(trinput.prevOut)
-            writeVarint(len(trinput.script), params)
-            apdu.append(len(params))
-            apdu.extend(params)
-            self.dongle.exchange(bytearray(apdu))
-            offset = 0
-            while True:
-                blockLength = 251
-                if ((offset + blockLength) < len(trinput.script)):
-                    dataLength = blockLength
-                else:
-                    dataLength = len(trinput.script) - offset
-                params = bytearray(trinput.script[offset: offset + dataLength])
-                if ((offset + dataLength) == len(trinput.script)):
-                    params.extend(trinput.sequence)
-                apdu = [self.BTCHIP_CLA, self.BTCHIP_INS_GET_TRUSTED_INPUT, 0x80, 0x00, len(params)]
-                apdu.extend(params)
-                self.dongle.exchange(bytearray(apdu))
-                offset += dataLength
-                if (offset >= len(trinput.script)):
-                    break
-        # Number of outputs
-        apdu = [self.BTCHIP_CLA, self.BTCHIP_INS_GET_TRUSTED_INPUT, 0x80, 0x00]
-        params = []
-        writeVarint(len(transaction.outputs), params)
-        apdu.append(len(params))
-        apdu.extend(params)
-        self.dongle.exchange(bytearray(apdu))
-        # Each output
-        indexOutput = 0
-        for troutput in transaction.outputs:
-            apdu = [self.BTCHIP_CLA, self.BTCHIP_INS_GET_TRUSTED_INPUT, 0x80, 0x00]
-            params = bytearray(troutput.amount)
-            writeVarint(len(troutput.script), params)
-            apdu.append(len(params))
-            apdu.extend(params)
-            self.dongle.exchange(bytearray(apdu))
-            offset = 0
-            while (offset < len(troutput.script)):
-                blockLength = 255
-                if ((offset + blockLength) < len(troutput.script)):
-                    dataLength = blockLength
-                else:
-                    dataLength = len(troutput.script) - offset
-                apdu = [self.BTCHIP_CLA, self.BTCHIP_INS_GET_TRUSTED_INPUT, 0x80, 0x00, dataLength]
-                apdu.extend(troutput.script[offset: offset + dataLength])
-                self.dongle.exchange(bytearray(apdu))
-                offset += dataLength
-
-        params = []
-        if transaction.extra_data:
-            # Zcash DIP2 extra data: By appending data to the 'lockTime' transfer we force the device into the
-            # BTCHIP_TRANSACTION_PROCESS_EXTRA mode, which gives us the opportunity to sneak with an additional
-            # data block.
-            if len(transaction.extra_data) > 255 - len(transaction.lockTime):
-                # for now the size should be sufficient
-                raise Exception('The size of the DIP2 extra data block has exceeded the limit.')
-
-            writeVarint(len(transaction.extra_data), params)
-            params.extend(transaction.extra_data)
-
-        apdu = [self.BTCHIP_CLA, self.BTCHIP_INS_GET_TRUSTED_INPUT, 0x80, 0x00, len(transaction.lockTime) + len(params)]
-        # Locktime
-        apdu.extend(transaction.lockTime)
-        apdu.extend(params)
-        response = self.dongle.exchange(bytearray(apdu))
-        result['trustedInput'] = True
-        result['value'] = response
-        return result
-
-
 class Ledger_Client():
     def __init__(self, hidDevice):
-        self.dongleObject = btchip_dash(hidDevice)
+        self.dongleObject = btchip_zcash(hidDevice)
         self.preflightDone = False
 
     def is_pairable(self):
@@ -187,7 +101,7 @@ class Ledger_Client():
     @test_pin_unlocked
     def get_xpub(self, bip32_path, xtype):
         self.checkDevice()
-        # bip32_path is of the form 44'/5'/1'
+        # bip32_path is of the form 44'/133'/1'
         # S-L-O-W - we don't handle the fingerprint directly, so compute
         # it manually from the previous node
         # This only happens once so it's bearable
@@ -240,11 +154,15 @@ class Ledger_Client():
     def supports_multi_output(self):
         return self.multiOutputSupported
 
+    def supports_overwinter(self):
+        return self.overwinterSupported
+
     def perform_hw1_preflight(self):
         try:
             firmwareInfo = self.dongleObject.getFirmwareVersion()
             firmware = firmwareInfo['version']
             self.multiOutputSupported = versiontuple(firmware) >= versiontuple(MULTI_OUTPUT_SUPPORT)
+            self.overwinterSupported = versiontuple(firmware) >= versiontuple(OVERWINTER_SUPPORT)
             self.canAlternateCoinVersions = (versiontuple(firmware) >= versiontuple(ALTERNATIVE_COIN_VERSION)
                                              and firmwareInfo['specialVersion'] >= 0x20)
 
@@ -423,6 +341,9 @@ class Ledger_KeyStore(Hardware_KeyStore):
         pin = ""
         self.get_client() # prompt for the PIN before displaying the dialog if necessary
 
+        if tx.overwintered:
+            if not self.get_client_electrum().supports_overwinter():
+                self.give_error(MSG_NEEDS_FW_UPDATE_OVERWINTER)
         # Fetch inputs of the transaction to sign
         derivations = self.get_tx_derivations(tx)
         for txin in tx.inputs():
@@ -447,21 +368,13 @@ class Ledger_KeyStore(Hardware_KeyStore):
             if txin_prev_tx is None:
                 raise UserFacingException(_('Offline signing with {} is not supported for legacy inputs.').format(self.device))
             txin_prev_tx_raw = txin_prev_tx.raw if txin_prev_tx else None
-            txin_prev_tx.deserialize()
-            tx_type = txin_prev_tx.tx_type
-            extra_payload = txin_prev_tx.extra_payload
-            extra_data = b''
-            if tx_type and extra_payload:
-                extra_payload = extra_payload.serialize()
-                extra_data = bfh(var_int(len(extra_payload))) + extra_payload
             inputs.append([txin_prev_tx_raw,
                            txin['prevout_n'],
                            redeemScript,
                            txin['prevout_hash'],
                            signingPos,
                            txin.get('sequence', 0xffffffff - 1),
-                           txin.get('value'),
-                           extra_data])
+                           txin.get('value')])
             inputsPaths.append(hwAddress)
             pubKeys.append(pubkeys)
 
@@ -515,9 +428,15 @@ class Ledger_KeyStore(Hardware_KeyStore):
             # Get trusted inputs from the original transactions
             for utxo in inputs:
                 sequence = int_to_hex(utxo[5], 4)
-                if not p2shTransaction:
-                    txtmp = bitcoinTransaction(bfh(utxo[0]))
-                    txtmp.extra_data = utxo[7]
+                if tx.overwintered:
+                    txtmp = zcashTransaction(bfh(utxo[0]))
+                    tmp = bfh(utxo[3])[::-1]
+                    tmp += bfh(int_to_hex(utxo[1], 4))
+                    tmp += txtmp.outputs[utxo[1]].amount
+                    chipInputs.append({'value' : tmp, 'sequence' : sequence})
+                    redeemScripts.append(bfh(utxo[2]))
+                elif not p2shTransaction:
+                    txtmp = zcashTransaction(bfh(utxo[0]))
                     trustedInput = self.get_client().getTrustedInput(txtmp, utxo[1])
                     trustedInput['sequence'] = sequence
                     chipInputs.append(trustedInput)
@@ -533,12 +452,18 @@ class Ledger_KeyStore(Hardware_KeyStore):
             inputIndex = 0
             rawTx = tx.serialize_to_network()
             self.get_client().enableAlternate2fa(False)
-            while inputIndex < len(inputs):
-                self.get_client().startUntrustedTransaction(firstTransaction, inputIndex,
-                                                            chipInputs, redeemScripts[inputIndex], version=tx.version)
+            if tx.overwintered:
+                self.get_client().startUntrustedTransaction(True, inputIndex, chipInputs,
+                                                            redeemScripts[inputIndex],
+                                                            version=tx.version,
+                                                            overwintered=tx.overwintered)
                 # we don't set meaningful outputAddress, amount and fees
                 # as we only care about the alternateEncoding==True branch
                 outputData = self.get_client().finalizeInput(b'', 0, 0, changePath, bfh(rawTx))
+                if tx.overwintered:
+                    inputSignature = self.get_client().untrustedHashSign('',
+                                                                         pin, lockTime=tx.locktime,
+                                                                         overwintered=tx.overwintered)
                 outputData['outputData'] = txOutput
                 if outputData['confirmationNeeded']:
                     outputData['address'] = output
@@ -548,14 +473,42 @@ class Ledger_KeyStore(Hardware_KeyStore):
                         raise UserWarning()
                     if pin != 'paired':
                         self.handler.show_message(_("Confirmed. Signing Transaction..."))
-                else:
-                    # Sign input with the provided PIN
-                    inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex], pin, lockTime=tx.locktime)
+                while inputIndex < len(inputs):
+                    singleInput = [ chipInputs[inputIndex] ]
+                    self.get_client().startUntrustedTransaction(False, 0, singleInput,
+                                                                redeemScripts[inputIndex],
+                                                                version=tx.version,
+                                                                overwintered=tx.overwintered)
+                    inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex],
+                                                                         pin, lockTime=tx.locktime,
+                                                                         overwintered=tx.overwintered)
                     inputSignature[0] = 0x30 # force for 1.4.9+
                     signatures.append(inputSignature)
                     inputIndex = inputIndex + 1
-                if pin != 'paired':
-                    firstTransaction = False
+            else:
+                while inputIndex < len(inputs):
+                    self.get_client().startUntrustedTransaction(firstTransaction, inputIndex,
+                                                                chipInputs, redeemScripts[inputIndex], version=tx.version)
+                    # we don't set meaningful outputAddress, amount and fees
+                    # as we only care about the alternateEncoding==True branch
+                    outputData = self.get_client().finalizeInput(b'', 0, 0, changePath, bfh(rawTx))
+                    outputData['outputData'] = txOutput
+                    if outputData['confirmationNeeded']:
+                        outputData['address'] = output
+                        self.handler.finished()
+                        pin = self.handler.get_auth( outputData ) # does the authenticate dialog and returns pin
+                        if not pin:
+                            raise UserWarning()
+                        if pin != 'paired':
+                            self.handler.show_message(_("Confirmed. Signing Transaction..."))
+                    else:
+                        # Sign input with the provided PIN
+                        inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex], pin, lockTime=tx.locktime)
+                        inputSignature[0] = 0x30 # force for 1.4.9+
+                        signatures.append(inputSignature)
+                        inputIndex = inputIndex + 1
+                    if pin != 'paired':
+                        firstTransaction = False
         except UserWarning:
             self.handler.show_error(_('Cancelled by user'))
             return
@@ -664,7 +617,7 @@ class LedgerPlugin(HW_PluginBase):
             raise UserFacingException(_('Failed to create a client for this device.') + '\n' +
                                       _('Make sure it is in the correct state.'))
         client.handler = self.create_handler(wizard)
-        client.get_xpub("m/44'/5'", 'standard') # TODO replace by direct derivation once Nano S > 1.1
+        client.get_xpub("m/44'/133'", 'standard') # TODO replace by direct derivation once Nano S > 1.1
 
     def get_xpub(self, device_id, derivation, xtype, wizard):
         if xtype not in self.SUPPORTED_XTYPES:
