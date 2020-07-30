@@ -53,7 +53,6 @@ from electrum_zcash.logging import Logger
 from .installwizard import InstallWizard, WalletAlreadyOpenInMemory
 
 
-from .dash_net_dialog import ZcashNetDialog
 from .util import get_default_language, read_QIcon, ColorScheme, custom_message_box
 from .main_window import ElectrumWindow
 from .network_dialog import NetworkDialog
@@ -79,11 +78,6 @@ class QElectrumApplication(QApplication):
 
 class QNetworkUpdatedSignalObject(QObject):
     network_updated_signal = pyqtSignal(str, object)
-
-
-class QZcashNetSignalsObject(QObject):
-    main = pyqtSignal(str, object)
-    dlg = pyqtSignal(str, object)
 
 
 class ElectrumGui(Logger):
@@ -116,9 +110,7 @@ class ElectrumGui(Logger):
         self.timer.setInterval(500)  # msec
 
         self.nd = None
-        self.dash_net_dialog = None
         self.network_updated_signal_obj = QNetworkUpdatedSignalObject()
-        self.dash_net_sobj = QZcashNetSignalsObject()
         self._num_wizards_in_progress = 0
         self._num_wizards_lock = threading.Lock()
         # init tray
@@ -135,12 +127,12 @@ class ElectrumGui(Logger):
     def set_dark_theme_if_needed(self):
         use_dark_theme = self.config.get('qt_gui_color_theme', 'default') == 'dark'
         self.app.setStyle('Fusion')
-        if use_dark_theme:
-            from .dark_dash_style import dash_stylesheet
-            self.app.setStyleSheet(dash_stylesheet)
-        else:
-            from .dash_style import dash_stylesheet
-            self.app.setStyleSheet(dash_stylesheet)
+        #if use_dark_theme:
+        #    from .dark_dash_style import dash_stylesheet
+        #    self.app.setStyleSheet(dash_stylesheet)
+        #else:
+        #    from .dash_style import dash_stylesheet
+        #    self.app.setStyleSheet(dash_stylesheet)
         # Apply any necessary stylesheet patches
         patch_qt_stylesheet(use_dark_theme=use_dark_theme)
         # Even if we ourselves don't set the dark theme,
@@ -204,21 +196,6 @@ class ElectrumGui(Logger):
         self.nd = NetworkDialog(self.daemon.network, self.config,
                                 self.network_updated_signal_obj)
         self.nd.show()
-
-    def show_dash_net_dialog(self, parent):
-        if not self.daemon.network:
-            parent.show_warning(_('You are using Electrum-Zcash in offline'
-                                  ' mode; restart Electrum-Zcash if you want'
-                                  ' to get connected'), title=_('Offline'))
-            return
-        if self.dash_net_dialog:
-            self.dash_net_dialog.on_updated()
-            self.dash_net_dialog.show()
-            self.dash_net_dialog.raise_()
-            return
-        self.dash_net_dialog = ZcashNetDialog(self.daemon.network, self.config,
-                                             self.dash_net_sobj)
-        self.dash_net_dialog.show()
 
     def _create_window_for_wallet(self, wallet):
         w = ElectrumWindow(self, wallet)

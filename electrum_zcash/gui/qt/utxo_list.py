@@ -32,8 +32,6 @@ from PyQt5.QtWidgets import (QAbstractItemView, QHeaderView, QComboBox,
                              QLabel, QMenu)
 
 from electrum_zcash.i18n import _
-from electrum_zcash.dash_ps import sort_utxos_by_ps_rounds
-from electrum_zcash.dash_tx import PSCoinRounds, SPEC_TX_NAMES
 from electrum_zcash.logging import Logger
 from electrum_zcash.util import profiler
 
@@ -46,7 +44,6 @@ class UTXOColumns(IntEnum):
     LABEL = 2
     AMOUNT = 3
     HEIGHT = 4
-    PS_ROUNDS = 5
 
 
 class UTXOModel(QAbstractItemModel, Logger):
@@ -58,7 +55,6 @@ class UTXOModel(QAbstractItemModel, Logger):
     SORT_KEYS = {
         UTXOColumns.ADDRESS: lambda x: x['address'],
         UTXOColumns.LABEL: lambda x: x['label'],
-        UTXOColumns.PS_ROUNDS: lambda x: x['ix'],
         UTXOColumns.AMOUNT: lambda x: x['balance'],
         UTXOColumns.HEIGHT: lambda x: x['height'],
         UTXOColumns.OUTPOINT: lambda x: x['outpoint'],
@@ -85,7 +81,6 @@ class UTXOModel(QAbstractItemModel, Logger):
         return {
             UTXOColumns.ADDRESS: _('Address'),
             UTXOColumns.LABEL: _('Label'),
-            UTXOColumns.PS_ROUNDS: _('PS Rounds'),
             UTXOColumns.AMOUNT: _('Amount'),
             UTXOColumns.HEIGHT: _('Height'),
             UTXOColumns.OUTPOINT: _('Output point'),
@@ -134,15 +129,6 @@ class UTXOModel(QAbstractItemModel, Logger):
         out_short = coin_item['out_short']
         label = coin_item['label']
         balance = coin_item['balance']
-        ps_rounds = coin_item['ps_rounds']
-        if ps_rounds is None:
-            ps_rounds = 'N/A'
-        elif ps_rounds == PSCoinRounds.COLLATERAL:
-            ps_rounds = 'Collateral'
-        elif ps_rounds == PSCoinRounds.OTHER:
-            ps_rounds = 'Other'
-        else:
-            ps_rounds = str(ps_rounds)
         if role == Qt.ToolTipRole:
             if col == UTXOColumns.ADDRESS and is_frozen_addr:
                 return QVariant(_('Address is frozen'))
@@ -153,8 +139,7 @@ class UTXOModel(QAbstractItemModel, Logger):
                     return QVariant(outpoint)
         elif role not in (Qt.DisplayRole, Qt.EditRole):
             if role == Qt.TextAlignmentRole:
-                if col in [UTXOColumns.AMOUNT, UTXOColumns.HEIGHT,
-                           UTXOColumns.PS_ROUNDS]:
+                if col in [UTXOColumns.AMOUNT, UTXOColumns.HEIGHT]:
                     return QVariant(Qt.AlignRight|Qt.AlignVCenter)
                 else:
                     return QVariant(Qt.AlignVCenter)
@@ -175,8 +160,6 @@ class UTXOModel(QAbstractItemModel, Logger):
             return QVariant(balance)
         elif col == UTXOColumns.HEIGHT:
             return QVariant(height)
-        elif col == UTXOColumns.PS_ROUNDS:
-            return QVariant(ps_rounds)
         else:
             return QVariant()
 
@@ -184,15 +167,8 @@ class UTXOModel(QAbstractItemModel, Logger):
     def get_coins(self):
         coin_items = []
 
-        show_ps = self.view.show_ps
         w = self.wallet
-        if show_ps == 0:  # All
-            utxos = w.get_utxos(include_ps=True)
-        elif show_ps == 1:  # PrivateSend
-            utxos = w.get_utxos(min_rounds=PSCoinRounds.MINUSINF)
-        else:  # Regular
-            utxos = w.get_utxos()
-        utxos.sort(key=sort_utxos_by_ps_rounds)
+        utxos = w.get_utxos()
         for i, utxo in enumerate(utxos):
             address = utxo['address']
             value = utxo['value']
@@ -207,7 +183,6 @@ class UTXOModel(QAbstractItemModel, Logger):
                 'height': utxo['height'],
                 'coinbase': utxo['coinbase'],
                 'islock': utxo['islock'],
-                'ps_rounds': utxo['ps_rounds'],
                 # append model fields
                 'ix': i,
                 'outpoint': outpoint,
@@ -265,8 +240,8 @@ class UTXOModel(QAbstractItemModel, Logger):
 
 class UTXOList(MyTreeView):
 
-    filter_columns = [UTXOColumns.ADDRESS, UTXOColumns.PS_ROUNDS,
-                      UTXOColumns.LABEL, UTXOColumns.OUTPOINT]
+    filter_columns = [UTXOColumns.ADDRESS, UTXOColumns.LABEL,
+                      UTXOColumns.OUTPOINT]
 
     def __init__(self, parent, model):
         stretch_column = UTXOColumns.LABEL
@@ -280,44 +255,27 @@ class UTXOList(MyTreeView):
         header = self.header()
         header.setDefaultAlignment(Qt.AlignCenter)
         header.setStretchLastSection(False)
-        header.setSortIndicator(UTXOColumns.PS_ROUNDS, Qt.AscendingOrder)
         self.setSortingEnabled(True)
         for col in UTXOColumns:
             if col == stretch_column:
                 header.setSectionResizeMode(col, QHeaderView.Stretch)
-            elif col == UTXOColumns.PS_ROUNDS:
-                header.setSectionResizeMode(col, QHeaderView.Fixed)
             else:
                 header.setSectionResizeMode(col, QHeaderView.ResizeToContents)
 
-        self.show_ps = 0
-        self.ps_button = QComboBox(self)
-        self.ps_button.currentIndexChanged.connect(self.toggle_ps)
-        for t in [_('All'), _('PrivateSend'), _('Regular')]:
-            self.ps_button.addItem(t)
-
     def get_toolbar_buttons(self):
-        return QLabel(_("Filter:")), self.ps_button
+        return (QLabel(_("Filter:")),)
 
     def on_hide_toolbar(self):
-        self.show_ps = 0
         self.update()
 
     def save_toolbar_state(self, state, config):
         config.set_key('show_toolbar_utxos', state)
-
-    def toggle_ps(self, state):
-        if state == self.show_ps:
-            return
-        self.show_ps = state
-        self.update()
 
     def update(self):
         self.cm.get_data_thread.need_update.set()
 
     def create_menu(self, position):
         w = self.wallet
-        psman = w.psman
         selected = self.selectionModel().selectedRows()
         if not selected:
             return
@@ -331,26 +289,9 @@ class UTXOList(MyTreeView):
         menu.addAction(_("Spend"), lambda: self.parent.spend_coins(coins))
         if len(coins) == 1:
             coin_item = coins[0]
-            ps_rounds = coin_item['ps_rounds']
             address = coin_item['address']
             txid = coin_item['prevout_hash']
             outpoint = coin_item['outpoint']
-            if (ps_rounds is not None
-                    and (ps_rounds == PSCoinRounds.OTHER or ps_rounds >= 0)):
-                coin_val = coin_item['value']
-                mwin = self.parent
-                if coin_val >= psman.min_new_denoms_from_coins_val:
-
-                    def create_new_denoms():
-                        mwin.create_new_denoms(coins, self.parent)
-                    menu.addAction(_('Create New Denoms'), create_new_denoms)
-
-                elif coin_val >= psman.min_new_collateral_from_coins_val:
-
-                    def create_new_collateral():
-                        mwin.create_new_collateral(coins, self.parent)
-                    menu.addAction(_('Create New Collateral'),
-                                   create_new_collateral)
             # "Details"
             tx = w.db.get_transaction(txid)
             if tx:
@@ -375,10 +316,6 @@ class UTXOList(MyTreeView):
             clipboard = self.parent.app.clipboard()
             menu.addAction(_("Copy {}").format(column_title),
                            lambda: clipboard.setText(copy_text))
-
-            if ps_rounds is not None:
-                menu.exec_(self.viewport().mapToGlobal(position))
-                return
 
             # "Freeze coin"
             set_frozen_state_c = self.parent.set_frozen_state_of_coins
@@ -406,11 +343,6 @@ class UTXOList(MyTreeView):
                 menu.addSeparator()
         else:
             # multiple items selected
-            ps_rounds = set([coin_item['ps_rounds'] for coin_item in coins])
-            if ps_rounds != {None}:
-                menu.exec_(self.viewport().mapToGlobal(position))
-                return
-
             menu.addSeparator()
             addrs = set([coin_item['address'] for coin_item in coins])
             is_coin_frozen = [w.is_frozen_coin(coin_item['outpoint'])

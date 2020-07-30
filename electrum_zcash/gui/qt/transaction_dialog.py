@@ -38,7 +38,6 @@ import qrcode
 from qrcode import exceptions
 
 from electrum_zcash.bitcoin import base_encode
-from electrum_zcash.dash_tx import SPEC_TX_NAMES
 from electrum_zcash.i18n import _
 from electrum_zcash.plugin import run_hook
 from electrum_zcash import simple_config
@@ -46,7 +45,6 @@ from electrum_zcash.util import bfh
 from electrum_zcash.transaction import SerializationError, Transaction
 from electrum_zcash.logging import get_logger
 
-from .dash_qt import ExtraPayloadWidget
 from .util import (MessageBoxMixin, read_QIcon, Buttons, CopyButton,
                    MONOSPACE_FONT, ColorScheme, ButtonsLineEdit)
 
@@ -106,13 +104,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         vbox = QVBoxLayout()
         self.setLayout(vbox)
 
-        if tx.tx_type == 0:
-            txid = tx.txid()
-            tx_type, completed = self.wallet.db.get_ps_tx(txid)
-        else:
-            tx_type = tx.tx_type
-        tx_type_name = '%s: %s, ' % (_('Type'), SPEC_TX_NAMES[tx_type])
-        vbox.addWidget(QLabel(tx_type_name + _('Transaction ID:')))
+        vbox.addWidget(QLabel(_('Transaction ID:')))
         self.tx_hash_e  = ButtonsLineEdit()
         qr_show = lambda: parent.show_qrcode(str(self.tx_hash_e.text()), 'Transaction ID', parent=self)
         qr_icon = "qrcode.png"
@@ -123,11 +115,6 @@ class TxDialog(QDialog, MessageBoxMixin):
         self.add_tx_stats(vbox)
         vbox.addSpacing(10)
         self.add_io(vbox)
-        if tx.tx_type:
-            self.extra_pld_label = QLabel('Extra payload:')
-            vbox.addWidget(self.extra_pld_label)
-            self.extra_pld = ExtraPayloadWidget()
-            vbox.addWidget(self.extra_pld)
 
         self.sign_button = b = QPushButton(_("Sign"))
         b.clicked.connect(self.sign)
@@ -259,10 +246,7 @@ class TxDialog(QDialog, MessageBoxMixin):
             self.tx_desc.show()
         self.status_label.setText(_('Status:') + ' ' + tx_details.status)
 
-        islock = tx_details.islock
         timestamp = tx_mined_status.timestamp
-        if not timestamp and islock:
-            timestamp = islock
         if timestamp:
             dttm = datetime.datetime.fromtimestamp(timestamp)
             time_str = dttm.isoformat(' ')[:-3]
@@ -300,10 +284,6 @@ class TxDialog(QDialog, MessageBoxMixin):
         self.amount_label.setText(amount_str)
         self.fee_label.setText(fee_str)
         self.size_label.setText(size_str)
-        if self.tx.tx_type:
-            tx_type = self.tx.tx_type
-            extra_payload = self.tx.extra_payload
-            self.extra_pld.set_extra_data(tx_type, extra_payload)
         run_hook('transaction_dialog_update', self)
 
     def add_io(self, vbox):

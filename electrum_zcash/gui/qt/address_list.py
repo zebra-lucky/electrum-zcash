@@ -50,7 +50,6 @@ class AddrColumns(IntEnum):
     COIN_BALANCE = 3
     FIAT_BALANCE = 4
     NUM_TXS = 5
-    PS_TYPE = 6
 
 
 class AddressModel(QAbstractItemModel, Logger):
@@ -66,7 +65,6 @@ class AddressModel(QAbstractItemModel, Logger):
         AddrColumns.COIN_BALANCE: lambda x: x['balance'],
         AddrColumns.FIAT_BALANCE: lambda x: x['fiat_balance'],
         AddrColumns.NUM_TXS: lambda x: x['num_txs'],
-        AddrColumns.PS_TYPE: lambda x: x['is_ps'],
     }
 
     def __init__(self, parent):
@@ -100,7 +98,6 @@ class AddressModel(QAbstractItemModel, Logger):
             AddrColumns.COIN_BALANCE: _('Balance'),
             AddrColumns.FIAT_BALANCE: ccy + ' ' + _('Balance'),
             AddrColumns.NUM_TXS: _('Tx'),
-            AddrColumns.PS_TYPE: _('PS Type'),
         }[section]
 
     def flags(self, idx):
@@ -142,7 +139,6 @@ class AddressModel(QAbstractItemModel, Logger):
         addr = addr_item['addr']
         is_frozen = addr_item['is_frozen']
         is_beyond_limit = addr_item['is_beyond_limit']
-        is_ps = addr_item['is_ps']
         label = addr_item['label']
         balance = addr_item['balance']
         fiat_balance = addr_item['fiat_balance']
@@ -154,8 +150,7 @@ class AddressModel(QAbstractItemModel, Logger):
                 else:
                     return QVariant(Qt.AlignRight|Qt.AlignVCenter)
             elif role == Qt.FontRole:
-                if col not in (AddrColumns.TYPE, AddrColumns.LABEL,
-                               AddrColumns.PS_TYPE):
+                if col not in (AddrColumns.TYPE, AddrColumns.LABEL):
                     return QVariant(QFont(MONOSPACE_FONT))
             elif role == Qt.BackgroundRole:
                 if col == AddrColumns.TYPE:
@@ -180,8 +175,6 @@ class AddressModel(QAbstractItemModel, Logger):
             return QVariant(fiat_balance)
         elif col == AddrColumns.NUM_TXS:
             return QVariant(num_txs)
-        elif col == AddrColumns.PS_TYPE:
-            return QVariant(_('PrivateSend') if is_ps else _('Regular'))
         else:
             return QVariant()
 
@@ -189,10 +182,8 @@ class AddressModel(QAbstractItemModel, Logger):
     def get_addresses(self):
         addr_items = []
 
-        ps_addrs = self.wallet.db.get_ps_addresses()
         show_change = self.view.show_change
         show_used = self.view.show_used
-        show_ps = self.view.show_ps
         w = self.wallet
         if show_change == 1:
             all_addrs = w.get_receiving_addresses()
@@ -200,12 +191,7 @@ class AddressModel(QAbstractItemModel, Logger):
             all_addrs = w.get_change_addresses()
         else:
             all_addrs = w.get_addresses()
-        if show_ps == 0:  # All
-            addr_list = all_addrs
-        elif show_ps == 1:  # PrivateSend
-            addr_list = [addr for addr in all_addrs if addr in ps_addrs]
-        else:  # Regular
-            addr_list = [addr for addr in all_addrs if addr not in ps_addrs]
+        addr_list = all_addrs
 
         fx = self.parent.fx
         for i, addr in enumerate(addr_list):
@@ -235,7 +221,6 @@ class AddressModel(QAbstractItemModel, Logger):
                 'balance': balance_text,
                 'fiat_balance': fiat_balance,
                 'num_txs': w.get_address_history_len(addr),
-                'is_ps': True if addr in ps_addrs else False,
             })
         return addr_items
 
@@ -287,8 +272,7 @@ class AddressModel(QAbstractItemModel, Logger):
 class AddressList(MyTreeView):
 
     filter_columns = [AddrColumns.TYPE, AddrColumns.ADDRESS,
-                      AddrColumns.LABEL, AddrColumns.COIN_BALANCE,
-                      AddrColumns.PS_TYPE]
+                      AddrColumns.LABEL, AddrColumns.COIN_BALANCE]
 
     def __init__(self, parent, model):
         stretch_column = AddrColumns.LABEL
@@ -307,14 +291,13 @@ class AddressList(MyTreeView):
         for col in AddrColumns:
             if col == stretch_column:
                 header.setSectionResizeMode(col, QHeaderView.Stretch)
-            elif col in [AddrColumns.TYPE, AddrColumns.PS_TYPE]:
+            elif col in [AddrColumns.TYPE]:
                 header.setSectionResizeMode(col, QHeaderView.Fixed)
             else:
                 header.setSectionResizeMode(col, QHeaderView.ResizeToContents)
 
         self.show_change = 0
         self.show_used = 0
-        self.show_ps = 0
         self.change_button = QComboBox(self)
         self.change_button.currentIndexChanged.connect(self.toggle_change)
         for t in [_('All'), _('Receiving'), _('Change')]:
@@ -323,10 +306,6 @@ class AddressList(MyTreeView):
         self.used_button.currentIndexChanged.connect(self.toggle_used)
         for t in [_('All'), _('Unused'), _('Funded'), _('Used')]:
             self.used_button.addItem(t)
-        self.ps_button = QComboBox(self)
-        self.ps_button.currentIndexChanged.connect(self.toggle_ps)
-        for t in [_('All'), _('PrivateSend'), _('Regular')]:
-            self.ps_button.addItem(t)
 
     def refresh_headers(self):
         fx = self.parent.fx
@@ -337,12 +316,11 @@ class AddressList(MyTreeView):
 
     def get_toolbar_buttons(self):
         return (QLabel(_("Filter:")),
-                self.change_button, self.used_button, self.ps_button)
+                self.change_button, self.used_button)
 
     def on_hide_toolbar(self):
         self.show_change = 0
         self.show_used = 0
-        self.show_ps = 0
         self.update()
 
     def save_toolbar_state(self, state, config):
@@ -358,12 +336,6 @@ class AddressList(MyTreeView):
         if state == self.show_used:
             return
         self.show_used = state
-        self.update()
-
-    def toggle_ps(self, state):
-        if state == self.show_ps:
-            return
-        self.show_ps = state
         self.update()
 
     def update(self):
@@ -393,7 +365,6 @@ class AddressList(MyTreeView):
             if not item:
                 return
             addr = item['addr']
-            is_ps = item['is_ps']
 
             hd = self.am.headerData
             addr_title = hd(AddrColumns.LABEL, None, Qt.DisplayRole)
@@ -412,9 +383,8 @@ class AddressList(MyTreeView):
             menu.addAction(_("Edit {}").format(addr_title),
                            lambda p=persistent: self.edit(QModelIndex(p)))
 
-            if not is_ps:
-                menu.addAction(_("Request payment"),
-                               lambda: self.parent.receive_at(addr))
+            menu.addAction(_("Request payment"),
+                           lambda: self.parent.receive_at(addr))
             if self.wallet.can_export():
                 menu.addAction(_("Private key"),
                                lambda: self.parent.show_private_key(addr))
@@ -431,15 +401,14 @@ class AddressList(MyTreeView):
                 menu.addAction(_("View on block explorer"),
                                lambda: webopen(addr_URL))
 
-            if not is_ps:
-                def set_frozen_state(addrs, state):
-                    self.parent.set_frozen_state_of_addresses(addrs, state)
-                if not self.wallet.is_frozen_address(addr):
-                    menu.addAction(_("Freeze"),
-                                   lambda: set_frozen_state([addr], True))
-                else:
-                    menu.addAction(_("Unfreeze"),
-                                   lambda: set_frozen_state([addr], False))
+            def set_frozen_state(addrs, state):
+                self.parent.set_frozen_state_of_addresses(addrs, state)
+            if not self.wallet.is_frozen_address(addr):
+                menu.addAction(_("Freeze"),
+                               lambda: set_frozen_state([addr], True))
+            else:
+                menu.addAction(_("Unfreeze"),
+                               lambda: set_frozen_state([addr], False))
 
         coins = self.wallet.get_spendable_coins(addrs, config=self.config)
         if coins:

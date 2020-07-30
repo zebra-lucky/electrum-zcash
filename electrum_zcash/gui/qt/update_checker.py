@@ -18,8 +18,8 @@ from electrum_zcash.logging import Logger
 
 
 class UpdateCheck(QWidget, Logger):
-    url = "https://raw.githubusercontent.com/akhavr/electrum-zcash/master/.latest-version"
-    download_url = "https://github.com/akhavr/electrum-zcash/releases"
+    url = "https://raw.githubusercontent.com/zebra-lucky/electrum-zcash/master/.latest-version"
+    download_url = "https://github.com/zebra-lucky/electrum-zcash/releases"
 
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
