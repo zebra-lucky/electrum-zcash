@@ -14,7 +14,7 @@ NOTE on apk signing: To create a keystore and sign the apk you need to install
 To create a keystore run the following command:
 
     mkdir ~/.jks && keytool -genkey -v -keystore ~/.jks/keystore \
-        -alias electrum.z.cash -keyalg RSA -keysize 2048 \
+        -alias electrum.zcash.org -keyalg RSA -keysize 2048 \
         -validity 10000
 
 Then it shows a warning about the proprietary format and a command to migrate:
@@ -29,8 +29,8 @@ Manual signing:
         -sigalg SHA1withRSA -digestalg SHA1 \
         -sigfile zcash-electrum \
         -keystore ~/.jks/keystore \
-        Electrum_Zcash-3.0.6.1-release-unsigned.apk \
-        electrum.z.cash
+        Electrum_ZCASH-3.0.6.1-release-unsigned.apk \
+        electrum.zcash.org
 
 Zipalign from Android SDK build tools is also required (set path to bin in
 settings file or with key -z). To install:
@@ -48,8 +48,8 @@ settings file or with key -z). To install:
 Manual zip aligning:
 
     android-sdk-linux/build-tools/27.0.3/zipalign -v 4 \
-        Electrum_Zcash-3.0.6.1-release-unsigned.apk \
-        Electrum_Zcash-3.0.6.1-release.apk
+        Electrum_ZCASH-3.0.6.1-release-unsigned.apk \
+        Zcash-Electrum-3.0.6.1-release.apk
 
 
 
@@ -113,7 +113,8 @@ try:
     import colorama
     from colorama import Fore, Style
     from github_release import (get_releases, gh_asset_download,
-                                gh_asset_upload, gh_asset_delete)
+                                gh_asset_upload, gh_asset_delete,
+                                gh_release_edit)
     from urllib3 import PoolManager
 except ImportError as e:
     print('Import error:', e)
@@ -133,18 +134,19 @@ SHA_FNAME = 'SHA256SUMS.txt'
 
 # make_ppa related definitions
 PPA_SERIES = {
-    'trusty': '14.04.1',
     'xenial': '16.04.1',
     'bionic': '18.04.1',
-    'cosmic': '18.10.1',
+    'focal': '20.04.1',
+    'groovy': '20.10.1',
+    'hirsute': '21.04.1',
 }
 PEP440_PUBVER_PATTERN = re.compile('^((\d+)!)?'
                                    '((\d+)(\.\d+)*)'
                                    '([a-zA-Z]+\d+)?'
                                    '((\.[a-zA-Z]+\d+)*)$')
 REL_NOTES_PATTERN = re.compile('^#.+?(^[^#].+?)^#.+?', re.M | re.S)
-SDIST_NAME_PATTERN = re.compile('^Electrum-Zcash-(.*).tar.gz$')
-SDIST_DIR_TEMPLATE = 'Electrum-Zcash-{version}'
+SDIST_NAME_PATTERN = re.compile('^Zcash-Electrum-(.*).tar.gz$')
+SDIST_DIR_TEMPLATE = 'Zcash-Electrum-{version}'
 PPA_SOURCE_NAME = 'electrum-zcash'
 PPA_ORIG_NAME_TEMPLATE = '%s_{version}.orig.tar.gz' % PPA_SOURCE_NAME
 CHANGELOG_TEMPLATE = """%s ({ppa_version}) {series}; urgency=medium
@@ -156,7 +158,7 @@ LP_ARCHIVES_TEMPLATE = '%s/~{user}/+archive/ubuntu/{ppa}' % LP_API_URL
 
 # sing_apk related definitions
 JKS_KEYSTORE = os.path.join(HOME_DIR, '.jks/keystore')
-JKS_ALIAS = 'electrum.z.cash'
+JKS_ALIAS = 'electrum.dash.org'
 JKS_STOREPASS = 'JKS_STOREPASS'
 JKS_KEYPASS = 'JKS_KEYPASS'
 KEYTOOL_ARGS = ['keytool', '-list', '-storepass:env', JKS_STOREPASS]
@@ -168,8 +170,8 @@ JARSIGNER_ARGS = [
     '-storepass:env', JKS_STOREPASS,
     '-keypass:env', JKS_KEYPASS,
 ]
-UNSIGNED_APK_PATTERN = re.compile('^Electrum_Zcash-(.*)-release-unsigned.apk$')
-SIGNED_APK_TEMPLATE = 'Electrum_Zcash-{version}-release.apk'
+UNSIGNED_APK_PATTERN = re.compile('^Electrum_ZCASH(_Testnet)?-(.*)-release-unsigned.apk$')
+SIGNED_APK_TEMPLATE = 'Zcash-Electrum{testnet}-{version}-release.apk'
 
 
 os.environ['QUILT_PATCHES'] = 'debian/patches'
@@ -298,6 +300,7 @@ class SignApp(object):
         self.count = kwargs.pop('count', None)
         self.dry_run = kwargs.pop('dry_run', False)
         self.no_ppa = kwargs.pop('no_ppa', False)
+        self.only_ppa = kwargs.pop('only_ppa', False)
         self.verbose = kwargs.pop('verbose', False)
         self.jks_keystore = kwargs.pop('jks_keystore', False)
         self.jks_alias = kwargs.pop('jks_alias', False)
@@ -338,6 +341,14 @@ class SignApp(object):
             self.zipalign_path = self.zipalign_path \
                 or self.config.get('zipalign_path', None)
 
+        if self.only_ppa and not self.tag_name:
+            print('need --tag-name, when using --only-ppa, exit')
+            sys.exit(1)
+
+        if self.only_ppa and self.no_ppa:
+            print('someting one required: --no-ppa or --only-ppa, exit')
+            sys.exit(1)
+
         if not self.repo:
             print('no repo found, exit')
             sys.exit(1)
@@ -373,7 +384,7 @@ class SignApp(object):
             while not self.passphrase:
                 self.read_passphrase()
 
-        if self.zipalign_path:
+        if self.zipalign_path and not self.only_ppa:
             try:
                 check_call(self.zipalign_path, stderr=FNULL)
             except CalledProcessError:
@@ -474,16 +485,24 @@ class SignApp(object):
                     if name == SHA_FNAME:
                         continue
 
-                    gh_asset_download(repo, tag, name)
-
                     if not self.no_ppa:
                         sdist_match = sdist_match \
                                       or SDIST_NAME_PATTERN.match(name)
 
+                    if self.only_ppa and not sdist_match:
+                        continue
+
+                    gh_asset_download(repo, tag, name)
+
+                    if self.only_ppa:
+                        break
+
                     apk_match = UNSIGNED_APK_PATTERN.match(name)
                     if apk_match:
                         unsigned_name = name
-                        name = self.sign_apk(unsigned_name, apk_match.group(1))
+                        name = self.sign_apk(unsigned_name,
+                                             apk_match.group(1),
+                                             apk_match.group(2))
 
                         gh_asset_upload(repo, tag, name, dry_run=self.dry_run)
                         gh_asset_delete(repo, tag, unsigned_name,
@@ -502,23 +521,25 @@ class SignApp(object):
                     sumline = '%s %s\n' % (sha256_checksum(name), name)
                     fdw.write(sumline)
 
-            self.sign_file_name(SHA_FNAME, detach=False)
+            if not self.only_ppa:
+                self.sign_file_name(SHA_FNAME, detach=False)
 
-            gh_asset_delete(repo, tag, '%s.asc' % SHA_FNAME,
-                            dry_run=self.dry_run)
+                gh_asset_delete(repo, tag, '%s.asc' % SHA_FNAME,
+                                dry_run=self.dry_run)
 
-            gh_asset_upload(repo, tag, '%s.asc' % SHA_FNAME,
-                            dry_run=self.dry_run)
+                gh_asset_upload(repo, tag, '%s.asc' % SHA_FNAME,
+                                dry_run=self.dry_run)
 
             if sdist_match and is_newest_release:
-                self.make_ppa(sdist_match, tmpdir)
+                self.make_ppa(sdist_match, tmpdir, tag)
 
-    def sign_apk(self, unsigned_name, version):
+    def sign_apk(self, unsigned_name, testnet, version):
         """Sign unsigned release apk"""
         if not (JKS_STOREPASS in os.environ and JKS_KEYPASS in os.environ):
             raise Exception('Found unsigned apk and no zipalign path set')
 
-        name = SIGNED_APK_TEMPLATE.format(version=version)
+        testnet = '-Testnet' if testnet else ''
+        name = SIGNED_APK_TEMPLATE.format(testnet=testnet, version=version)
 
         print('Signing apk: %s' % name)
         apk_args = ['-keystore', self.jks_keystore,
@@ -533,8 +554,10 @@ class SignApp(object):
 
         return name
 
-    def make_ppa(self, sdist_match, tmpdir):
+    def make_ppa(self, sdist_match, tmpdir, tag):
         """Build, sign and upload dsc to launchpad.net ppa from sdist.tar.gz"""
+        repo = self.repo
+
         with ChdirTemporaryDirectory() as ppa_tmpdir:
             sdist_name = sdist_match.group(0)
             version = sdist_match.group(1)
@@ -573,6 +596,10 @@ class SignApp(object):
                     changes = '\n'.join(changes)
                 else:
                     changes = '\n  * Porting to ppa\n\n'
+
+            if not self.dry_run and not self.only_ppa:
+                gh_release_edit(repo, tag, name=version)
+                gh_release_edit(repo, tag, body=changes)
 
             os.chdir(sdist_dir)
             print('  Making PPAs for series: %s' % (', '.join(series)))
@@ -614,7 +641,10 @@ class SignApp(object):
         """Search through last 'count' releases with assets without
         .asc counterparts or releases withouth SHA256SUMS.txt.asc
         """
-        print('Sign releases on repo: %s' % self.repo)
+        if self.only_ppa:
+            print('Make lanuchpad PPA on repo: %s' % self.repo)
+        else:
+            print('Sign releases on repo: %s' % self.repo)
         print('  With key: %s, %s\n' % (self.keyid, self.uid))
         releases = get_releases(self.repo)
 
@@ -670,7 +700,7 @@ class SignApp(object):
             if not need_to_sign:
                 need_to_sign = '%s.asc' % SHA_FNAME not in asc_names
 
-            if need_to_sign or self.force:
+            if need_to_sign or self.force or self.only_ppa:
                 self.sign_release(r, other_names, asc_names, r==releases[0])
             else:
                 print('  Seems already signed, skip release\n')
@@ -699,11 +729,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('-S', '--ppa-upstream-suffix',
               help='upload upstream source with version suffix (ex p1)')
 @click.option('-L', '--no-ppa', is_flag=True,
-              help='Do not make launchpad ppa')
+              help='Do not make launchpad PPA')
 @click.option('-n', '--dry-run', is_flag=True,
               help='Do not uload signed files')
 @click.option('-p', '--ask-passphrase', is_flag=True,
               help='Ask to enter passphrase')
+@click.option('-P', '--only-ppa', is_flag=True,
+              help='Only make launchpad PPA (need --tag-name)')
 @click.option('-r', '--repo',
               help='Repository in format username/reponame')
 @click.option('-s', '--sleep', type=int,

@@ -1,24 +1,41 @@
 #!/usr/bin/make -f
 
-export PYBUILD_NAME=electrum-zcash
+ifneq (,$(findstring Python 3.5,$(shell python3 --version 2>&1)))
+    PYTHON3=python3.6
+else
+    PYTHON3=python3
+endif
+
+export DH_VERBOSE=1
+export DH_UPGRADE_PIP
+export DH_UPGRADE_SETUPTOOLS
+export DH_UPGRADE_WHEEL
+export DH_VIRTUALENV_INSTALL_ROOT=/opt/venvs
+export DH_VIRTUALENV_ARGUMENTS=--python $(PYTHON3) --system-site-packages \
+			--never-download --always-copy
+export DH_PIP_EXTRA_ARGS=--no-cache-dir --no-index \
+			--find-links=file:///usr/share/electrum-dash-pypi-bdeps/
+export REQ_PATH=contrib/requirements/
+export DH_VIRTUALENV_MAINPACKAGE=electrum-zcash-venv
+export DH_VIRTUALENV_INSTALL_SUFFIX=$(DH_VIRTUALENV_MAINPACKAGE)
 
 %:
-	dh $@ --with python3 --buildsystem=pybuild
+	dh $@ --buildsystem=dh_virtualenv
+
+override_dh_auto_build::
+	cat \
+		$(REQ_PATH)requirements.txt \
+		$(REQ_PATH)requirements-hw.txt \
+		$(REQ_PATH)requirements-binaries.txt \
+		$(REQ_PATH)requirements-tests.txt \
+			> requirements.txt
+	dh_auto_build
 
 override_dh_installchangelogs::
 	dh_installchangelogs -k RELEASE-NOTES
 
-override_dh_auto_build::
-	pyrcc5 icons.qrc -o gui/qt/icons_rc.py
-	dh_auto_build
+override_dh_shlibdeps:
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info --exclude=Qt
 
-override_dh_auto_install::
-	dh_auto_install
-	mkdir -p debian/electrum-zcash/usr/bin \
-             debian/electrum-zcash/usr/share
-	mv debian/python3-electrum-zcash/usr/bin \
-       debian/electrum-zcash/usr
-	mv debian/python3-electrum-zcash/usr/share/applications \
-       debian/electrum-zcash/usr/share
-	mv debian/python3-electrum-zcash/usr/share/pixmaps \
-       debian/electrum-zcash/usr/share
+override_dh_auto_test::
+	build/opt/venvs/$(DH_VIRTUALENV_MAINPACKAGE)/bin/python -m pytest electrum_zcash/tests

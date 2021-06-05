@@ -1,21 +1,22 @@
-# If you want Electrum-Zcash to appear in a Linux app launcher ("start menu"), install this by doing:
+# If you want Zcash Electrum to appear in a Linux app launcher ("start menu"), install this by doing:
 # sudo desktop-file-install electrum-zcash.desktop
 
 [Desktop Entry]
-Comment=Lightweight Zcash Client
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-zcash %u"
-GenericName[en_US]=Zcash Wallet
-GenericName=Zcash Wallet
-Icon=electrum-zcash.png
-Name[en_US]=Electrum-Zcash Bitcoin Wallet
-Name=Electrum-Zcash Bitcoin Wallet
-Categories=Finance;Network;
-StartupNotify=false
+Comment=Zcash Electrum Wallet
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum-zcash %u"
+GenericName[en_US]=Zcash Electrum
+GenericName=Zcash Electrum
+Icon=electrum-zcash
+Name[en_US]=Zcash Electrum
+Name=Zcash Electrum
+Categories=Network;
+StartupNotify=true
+StartupWMClass=zcash-electrum
 Terminal=false
 Type=Application
 MimeType=x-scheme-handler/zcash;
 Actions=Testnet;
 
 [Desktop Action Testnet]
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-zcash --testnet %u"
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum-zcash --testnet %u"
 Name=Testnet mode

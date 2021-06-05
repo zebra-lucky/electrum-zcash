@@ -1,4 +1,5 @@
-Cython>=0.27
-trezor>=0.9.0
-keepkey
-btchip-python
+hidapi
+trezor[hidapi]>=0.12.0
+safet>=0.1.5
+keepkey>=6.3.1
+btchip-python>=0.1.32

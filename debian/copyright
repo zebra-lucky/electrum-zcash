@@ -9,16 +9,16 @@ Comment:
  Various authors are described in the AUTHORS file, including parts on
  which they worked and hold license.
 
-Files: lib/*
-Copyright: 2011-2018 Thomas Voegtlin
+Files: electrum_zcash/*
+Copyright: 2011-2020 Thomas Voegtlin
 License: Expat
 
-Files: plugins/*
-Copyright: 2014-2018 Thomas Voegtlin
+Files: electrum_zcash/plugins/*
+Copyright: 2014-2020 Thomas Voegtlin
 License: Expat
 
 Files: debian/*
-Copyright: 2018 Maksym Yuzhakov
+Copyright: 2018-2020 Andriy Khavryuchenko
 License: Expat
 
 License: Expat

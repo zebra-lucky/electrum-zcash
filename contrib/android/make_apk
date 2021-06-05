@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -e
+
+CONTRIB_ANDROID="$(dirname "$(readlink -e "$0")")"
+ROOT_FOLDER="$CONTRIB_ANDROID"/../..
+PACKAGES="$ROOT_FOLDER"/packages/
+LOCALE="$ROOT_FOLDER"/electrum_zcash/locale/
+
+if [ ! -d "$LOCALE" ]; then
+  echo "Run make_locale first!"
+  exit 1
+fi
+
+if [ ! -d "$PACKAGES" ]; then
+  echo "Run make_packages first!"
+  exit 1
+fi
+
+pushd ./contrib/android
+
+make theming
+
+if [[ -n $1 ]]; then
+    echo make $1
+    make $1
+else
+    echo make release
+    make release
+fi
+
+popd

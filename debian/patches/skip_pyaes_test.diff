@@ -1,0 +1,12 @@
+Index: electrum-zcash-post-3.2.2/electrum_zcash/tests/test_bitcoin.py
+===================================================================
+--- electrum-zcash-post-3.2.2.orig/electrum_zcash/tests/test_bitcoin.py
++++ electrum-zcash-post-3.2.2/electrum_zcash/tests/test_bitcoin.py
+@@ -98,6 +98,7 @@ class Test_bitcoin(ElectrumTestCase):
+         # we want the unit testing framework to test with cryptography available.
+         self.assertTrue(bool(crypto.HAS_CRYPTOGRAPHY))
+ 
++    @unittest.skip("in deb build using only cryptography lib")
+     def test_pyaes_is_available(self):
+         # we want the unit testing framework to test with pyaes available.
+         self.assertTrue(bool(crypto.HAS_PYAES))

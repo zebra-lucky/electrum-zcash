@@ -1,0 +1,14 @@
+{
+    "Poloniex": [
+        "BTC"
+    ],
+    "CoinCap": [
+        "USD"
+    ],
+    "CoinGecko": [
+        "BTC",
+        "EUR",
+        "USD",
+        "PLN"
+    ]
+}

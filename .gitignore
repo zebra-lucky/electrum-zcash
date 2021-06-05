@@ -1,19 +1,15 @@
 ####-*.patch
 *.pyc
 *.swp
+.DS_Store
 build/
 dist/
-*.egg/
-*.egg/
-/electrum.py
-contrib/pyinstaller/
-Electrum.egg-info/
-gui/qt/icons_rc.py
-locale/
+electrum_zcash/locale/
 .devlocaltmp/
 *_trial_temp
 packages
-env/
+env*/
+env
 .tox/
 .buildozer/
 bin/
@@ -21,10 +17,11 @@ bin/
 
 # tox files
 .cache/
+.pytest_cache/
 .coverage
 
 electrum_data/
-gui/kivy/theming/light-0.png
-gui/kivy/theming/light.atlas
-Electrum_Zcash.egg-info/
-.pytest_cache
+electrum_zcash/gui/kivy/theming/light-0.png
+electrum_zcash/gui/kivy/theming/light-1.png
+electrum_zcash/gui/kivy/theming/light.atlas
+*.egg-info/

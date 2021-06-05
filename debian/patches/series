@@ -1,1 +1,3 @@
+skip_pyaes_test.diff
+skip_cryptodomex_test.diff
 fix-keepkey-with-trezor.diff

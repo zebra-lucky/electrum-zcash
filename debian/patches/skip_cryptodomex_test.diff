@@ -1,0 +1,19 @@
+Index: Zcash-Electrum-4.0.4.0rc2/electrum_zcash/tests/test_bitcoin.py
+===================================================================
+--- Zcash-Electrum-4.0.4.0rc2.orig/electrum_zcash/tests/test_bitcoin.py
++++ Zcash-Electrum-4.0.4.0rc2/electrum_zcash/tests/test_bitcoin.py
+@@ -1,5 +1,6 @@
+ import base64
+ import sys
++import unittest
+ 
+ from electrum_zcash.bitcoin import (public_key_to_p2pkh, address_from_private_key,
+                                    is_address, is_private_key,
+@@ -96,6 +97,7 @@ class Test_bitcoin(ElectrumTestCase):
+         # we want the unit testing framework to test with libsecp256k1 available.
+         self.assertTrue(bool(ecc_fast._libsecp256k1))
+ 
++    @unittest.skip("in deb build using only cryptography lib")
+     def test_pycryptodomex_is_available(self):
+         # we want the unit testing framework to test with pycryptodomex available.
+         self.assertTrue(bool(crypto.HAS_CRYPTODOME))

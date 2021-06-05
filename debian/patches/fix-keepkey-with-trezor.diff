@@ -1,13 +1,13 @@
-Index: electrum-zcash/electrum-zcash
+Index: electrum-zcash-post-3.2.2/electrum-zcash
 ===================================================================
---- electrum-zcash.orig/electrum-zcash	2018-06-12 22:15:35.699293303 +0300
-+++ electrum-zcash/electrum-zcash	2018-06-12 22:20:02.122480853 +0300
-@@ -26,6 +26,8 @@
- import os
+--- electrum-zcash-post-3.2.2.orig/electrum-zcash
++++ electrum-zcash-post-3.2.2/electrum-zcash
+@@ -27,6 +27,8 @@ import sys
  import sys
+ 
  
 +os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']='python'
 +
- script_dir = os.path.dirname(os.path.realpath(__file__))
- is_bundle = getattr(sys, 'frozen', False)
- is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "electrum-zcash.desktop"))
+ MIN_PYTHON_VERSION = "3.6.1"  # FIXME duplicated from setup.py
+ _min_python_version_tuple = tuple(map(int, (MIN_PYTHON_VERSION.split("."))))
+ 

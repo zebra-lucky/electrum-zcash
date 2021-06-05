@@ -1,0 +1,197 @@
+name: Build release workflow
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+
+  create_release:
+    runs-on: ubuntu-18.04
+    name: Create github release
+    outputs:
+      upload_url: >
+        ${{ steps.get_release.outputs.upload_url ||
+            steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Try to Get Release
+        id: get_release
+        uses: zebra-lucky/actions-js-getRelease@0.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: ${{ github.ref }}
+      - name: Create Release
+        id: create_release
+        if: ${{ !steps.get_release.outputs.upload_url }}
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  build_osx:
+    needs: create_release
+    runs-on: macos-10.15
+    name: create release for macOS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Set outputs for pkg_ver
+        id: set_vars
+        run: |
+          source ./contrib/zcash/electrum_zcash_version_env.sh
+          echo "::set-output name=pkg_ver::$(echo $ZCASH_ELECTRUM_VERSION)"
+      - name: Prepare build
+        env:
+          ZCASH_ELECTRUM_VERSION: ${{ steps.set_vars.outputs.pkg_ver }}
+        run: |
+          ./contrib/zcash/actions/install-osx.sh
+      - name: Build dmg
+        env:
+          ZCASH_ELECTRUM_VERSION: ${{ steps.set_vars.outputs.pkg_ver }}
+        run: |
+          ./contrib/zcash/actions/script-osx.sh
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-macosx.dmg
+          asset_name: Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-macosx.dmg
+          asset_content_type: application/apple-diskimage
+
+#  build_apk:
+#    needs: create_release
+#    runs-on: ubuntu-18.04
+#    strategy:
+#      matrix:
+#        arch: ['armeabi-v7a', 'arm64-v8a']
+#        is_mainnet: [['true', 'Electrum_ZCASH'],
+#                     ['false', 'Electrum_ZCASH_Testnet']]
+#    env:
+#      APP_ANDROID_ARCH: ${{ matrix.arch }}
+#      ELECTRUM_MAINNET: ${{ matrix.is_mainnet[0] }}
+#    name: create release for Android
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v1
+#      - name: Set outputs for pkg_ver, apk_ver, vercode, is_release
+#        id: set_vars
+#        run: |
+#          source ./contrib/zcash/electrum_zcash_version_env.sh
+#          echo "::set-output name=pkg_ver::$(echo $ZCASH_ELECTRUM_VERSION)"
+#          echo "::set-output name=apk_ver::$(echo $ZCASH_ELECTRUM_APK_VERSION)"
+#          echo "::set-output name=vercode::$(echo $ZCASH_ELECTRUM_VERSION_CODE)"
+#          echo "::set-output name=is_release::$(echo $IS_RELEASE)"
+#      - name: Prepare build
+#        if: ${{ steps.set_vars.outputs.is_release || matrix.is_mainnet[0] == 'false' }}
+#        env:
+#          ZCASH_ELECTRUM_VERSION: ${{ steps.set_vars.outputs.pkg_ver }}
+#          ZCASH_ELECTRUM_APK_VERSION: ${{ steps.set_vars.outputs.apk_ver }}
+#          ZCASH_ELECTRUM_VERSION_CODE: ${{ steps.set_vars.outputs.vercode }}
+#          IS_RELEASE: ${{ steps.set_vars.outputs.is_release }}
+#        run: |
+#          ./contrib/zcash/actions/install-linux-apk.sh
+#      - name: Build apk
+#        if: ${{ steps.set_vars.outputs.is_release || matrix.is_mainnet[0] == 'false' }}
+#        env:
+#          ZCASH_ELECTRUM_VERSION: ${{ steps.set_vars.outputs.pkg_ver }}
+#          ZCASH_ELECTRUM_APK_VERSION: ${{ steps.set_vars.outputs.apk_ver }}
+#          ZCASH_ELECTRUM_VERSION_CODE: ${{ steps.set_vars.outputs.vercode }}
+#          IS_RELEASE: ${{ steps.set_vars.outputs.is_release }}
+#        run: |
+#          ./contrib/zcash/actions/script-linux-apk.sh
+#      - name: Upload Release Asset
+#        if: ${{ steps.set_vars.outputs.is_release || matrix.is_mainnet[0] == 'false' }}
+#        uses: actions/upload-release-asset@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          upload_url: ${{ needs.create_release.outputs.upload_url }}
+#          asset_path: bin/${{ matrix.is_mainnet[1] }}-${{ steps.set_vars.outputs.apk_ver }}-${{ matrix.arch }}-release-unsigned.apk
+#          asset_name: ${{ matrix.is_mainnet[1] }}-${{ steps.set_vars.outputs.apk_ver }}-${{ matrix.arch }}-release-unsigned.apk
+#          asset_content_type: application/vnd.android.package-archive
+
+  build_linux_win:
+    needs: create_release
+    runs-on: ubuntu-18.04
+    name: create release for Linux/Win
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Set outputs for pkg_ver
+        id: set_vars
+        run: |
+          source ./contrib/zcash/electrum_zcash_version_env.sh
+          echo "::set-output name=pkg_ver::$(echo $ZCASH_ELECTRUM_VERSION)"
+      - name: Prepare build
+        env:
+          ZCASH_ELECTRUM_VERSION: ${{ steps.set_vars.outputs.pkg_ver }}
+        run: |
+          ./contrib/zcash/actions/install-linux.sh
+      - name: Build Linux/Win
+        env:
+          ZCASH_ELECTRUM_VERSION: ${{ steps.set_vars.outputs.pkg_ver }}
+        run: |
+          ./contrib/zcash/actions/script-linux.sh
+      - name: Upload sdist tar.gz Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}.tar.gz
+          asset_name: Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload sdist zip Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}.zip
+          asset_name: Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}.zip
+          asset_content_type: application/x-zip-compressed
+      - name: Upload AppImage Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-x86_64.AppImage
+          asset_name: Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-x86_64.AppImage
+          asset_content_type: application/octet-stream
+      - name: Upload Win32 Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-setup-win32.exe
+          asset_name: Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-setup-win32.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+      - name: Upload Win64 Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-setup-win64.exe
+          asset_name: Zcash-Electrum-${{ steps.set_vars.outputs.pkg_ver }}-setup-win64.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+
+  upload_notify_artifact:
+    runs-on: ubuntu-18.04
+    if: always()
+    name: Upload Notify Artifact
+    steps:
+      - name: Upload Notify Artifact
+        uses: zebra-lucky/actions-js-slackJobsStatus@0.0.2
+        with:
+          gh_ctx: ${{ toJson(github) }}

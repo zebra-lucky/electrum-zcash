@@ -1,3 +1,15 @@
+# Release 4.1.2.1
+
+ * base_wizard.py, keystore.py: add purpose48 multisig #244
+ * commands load_wallet: add set current for commands option #247
+ * base_wizard.py: fix choose_keystore (create seed) #253
+ * kivy: add network data loading progress bar, notify
+   when server disconnected on excessive resource usage (limits) #254
+ * Renew build dependencies for macOS/Win, other fixes #255
+ * Win builds: custom PyInstaller bootloaders to minimize
+   AV false-positives #256
+
+
 # Release 3.1.3
 
  * Qt GUI: seed word auto-complete during restore
